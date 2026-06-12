@@ -1,0 +1,261 @@
+/* ============================================
+   RESET GENERAL
+   Quita márgenes/paddings por defecto y aplica
+   la fuente base a todos los elementos
+   ============================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Fondo y color de texto general de la página */
+body {
+  background-color: #f4f4f4;
+  color: #222;
+}
+
+/* ============================================
+   HEADER (encabezado superior)
+   Contiene logo+dirección, título y redes sociales
+   ============================================ */
+header {
+  background-color: #1a1a2e;
+  color: #fff;
+  padding: 50px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: relative; /* necesario para posicionar el título centrado */
+}
+
+/* Bloque izquierdo del header: logo + dirección */
+.header-izquierda {
+  display: flex;
+  align-items: flex-end;
+  gap: -10px;
+}
+
+/* Logo circular dentro del header */
+header img.logo {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%; /* lo hace circular */
+  border: 3px solid #fff;
+  flex-shrink: 0; /* evita que se achique en pantallas pequeñas */
+}
+
+/* Texto de la dirección debajo/junto al logo */
+.header-izquierda .direccion {
+  font-size: 16px;
+  color: #ccc;
+  padding-bottom: 0px;
+  margin-bottom: -30px;
+}
+
+/* Bloque central del header: título "GYRO STORE" y subtítulo */
+.header-titulo {
+  text-align: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* centra horizontalmente sin importar el ancho */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Tamaño del título principal */
+.header-titulo h1 {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+/* Estilo del subtítulo ("Calidad que vale cada centavo") */
+.header-subtitulo {
+  font-size: 14px;
+  font-weight: normal;
+  color: #ccc;
+  white-space: nowrap; /* evita que el texto se corte en dos líneas */
+  margin-top: 4px;
+}
+
+/* Contenedor de los íconos/enlaces de redes sociales */
+.redes {
+  display: flex;
+  gap: 10px;
+}
+
+/* Estilo de cada link de red social (forma de "pill") */
+.redes a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  background-color: rgba(255,255,255,0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+/* Efecto hover sobre los links de redes sociales */
+/* ============================================
+   REDES SOCIALES
+   Columna vertical de iconos con nombre de usuario visible
+   ============================================ */
+.redes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end; /* alinea las pastillas a la derecha */
+}
+
+/* Cada ícono/enlace de red social */
+.redes .red-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  background-color: rgba(255,255,255,0.1);
+  padding: 8px 12px;
+  border-radius: 24px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.redes .red-item:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.redes .red-item i {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE: pantallas muy pequeñas (móviles)
+   Reorganiza el header en columna y centra todo
+   ============================================ */
+@media (max-width: 480px) {
+  header {
+    justify-content: center;
+    text-align: center;
+  }
+  .header-izquierda {
+    flex-direction: column;
+  }
+  .redes {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   CATÁLOGO DE PRODUCTOS
+   Grid que organiza las tarjetas de productos
+   ============================================ */
+.catalogo {
+  display: grid;
+  grid-template-columns: 1fr; /* 1 columna en pantallas pequeñas */
+  gap: 16px;
+  padding: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* En pantallas medianas/grandes, 2 columnas */
+@media (min-width: 600px) {
+  .catalogo {
+    grid-template-columns: 1fr 1fr;
+    max-width: 900px;
+  }
+}
+
+/* ============================================
+   TARJETA DE PRODUCTO INDIVIDUAL
+   ============================================ */
+.producto {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden; /* recorta la imagen a los bordes redondeados */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Imagen del producto */
+.producto img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover; /* recorta la imagen sin deformarla */
+  background-color: #e0e0e0; /* color de fondo mientras carga la imagen */
+}
+
+/* Contenedor de texto dentro de la tarjeta (nombre, descripción, precio, botón) */
+.producto-info {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1; /* hace que todas las tarjetas tengan la misma altura */
+}
+
+/* Nombre del producto */
+.producto-info h2 {
+  font-size: 17px;
+  color: #1a1a2e;
+}
+
+/* Descripción del producto */
+.producto-info p {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+}
+
+/* Precio del producto */
+.precio {
+  font-size: 18px;
+  font-weight: bold;
+  color: #16a34a;
+  margin-top: 4px;
+}
+
+/* ============================================
+   BOTÓN "Comprar por WhatsApp"
+   ============================================ */
+.btn-whatsapp {
+  margin-top: 8px;
+  background-color: #25D366; /* verde estilo WhatsApp */
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+/* Efecto hover del botón de WhatsApp */
+.btn-whatsapp:hover {
+  background-color: #1ebe5b;
+}
+
+/* ============================================
+   FOOTER (pie de página)
+   ============================================ */
+footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+  color: #888;
+}
