@@ -1,25 +1,76 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Gyro Store</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
   <!-- Hoja de estilos: debe ir en el <head>, no en el <body> -->
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/ingaburtogerald-dot/Catalog_Project/main/images_resources/Gyro_icon-32.png">
+  <link rel="icon" type="image/jpeg"
+    href="https://raw.githubusercontent.com/ingaburtogerald-dot/Catalog_Project/main/images_resources/Gyro_icon-32.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
+
 <body>
+
+  <!-- ============================================
+       MENÚ LATERAL (SIDEBAR DRAWER)
+       ============================================ -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <img class="sidebar-logo" src="https://raw.githubusercontent.com/ingaburtogerald-dot/Catalog_Project/main/images_resources/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store">
+        <span class="sidebar-title">GYRO STORE</span>
+      </div>
+      <button class="btn-close-menu" id="close-menu" aria-label="Cerrar menú">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="#catalogo" class="sidebar-link">Audífonos In-Ear <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link">Audífonos Diadema <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link">Accesorios de Audio <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link">Bluetooth & Wireless <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link">Nuevos Modelos <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link">Marcas <i class="fa-solid fa-arrow-right-long"></i></a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-location">
+        <i class="fa-solid fa-location-dot"></i>
+        <div>
+          <span class="location-brand">Gyro Store</span>
+          <span class="location-address">Managua, conchita palacios 2c al lago, 1c arriba</span>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- ============================================
        HEADER: logo, dirección, título y redes sociales
        ============================================ -->
   <header>
 
-    <!-- Bloque izquierdo: logo -->
+    <!-- Bloque izquierdo: logo y botón hamburguesa -->
     <div class="header-izquierda">
-      <img class="logo" src="https://raw.githubusercontent.com/ingaburtogerald-dot/Catalog_Project/main/images_resources/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store">
+      <button class="btn-menu" id="open-menu" aria-label="Abrir menú lateral">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <img class="logo"
+        src="https://raw.githubusercontent.com/ingaburtogerald-dot/Catalog_Project/main/images_resources/Gyro_Store_logo.jpeg"
+        alt="Logo de Gyro Store">
     </div>
 
     <!-- Bloque central: título, subtítulo y descripción -->
@@ -31,82 +82,93 @@
 
     <!-- Bloque de redes sociales -->
     <div class="redes">
-      <a href="https://wa.me/50585944758" target="_blank" class="red-item whatsapp">
+      <a href="https://wa.me/50585944758" target="_blank" class="red-item whatsapp cta-whatsapp">
         <i class="fa-brands fa-whatsapp"></i>
-        <span class="red-nombre">Gyro Store Linea de WhatsApp</span>
+        <span class="red-nombre">Línea de WhatsApp</span>
       </a>
-      <a href="https://www.instagram.com/store_gyro/" target="_blank" class="red-item instagram">
-        <i class="fa-brands fa-instagram"></i>
-        <span class="red-nombre">@store_gyro</span>
-      </a>
-      <a href="https://www.facebook.com/profile.php?id=61589182888082" target="_blank" class="red-item facebook">
-        <i class="fa-brands fa-facebook"></i>
-        <span class="red-nombre">Gyro Store</span>
-      </a>
-      <a href="https://www.tiktok.com/@gyro_store" target="_blank" class="red-item tiktok">
-        <i class="fa-brands fa-tiktok"></i>
-        <span class="red-nombre">@gyro_store</span>
-      </a>
-      <a href="https://maps.app.goo.gl/r5pFyiZN5zi4g7Q1A" target="_blank" class="red-item maps direccion" title="Bo. Georgino Andrade, conchita palacios 2c al norte, 1c al este">
+      <div class="redes-secundarias">
+        <a href="https://www.instagram.com/store_gyro/" target="_blank" class="red-icono instagram" title="Instagram">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+        <a href="https://www.facebook.com/profile.php?id=61589182888082" target="_blank" class="red-icono facebook"
+          title="Facebook">
+          <i class="fa-brands fa-facebook"></i>
+        </a>
+        <a href="https://www.tiktok.com/@gyro_store" target="_blank" class="red-icono tiktok" title="TikTok">
+          <i class="fa-brands fa-tiktok"></i>
+        </a>
+      </div>
+      <a href="https://maps.app.goo.gl/r5pFyiZN5zi4g7Q1A" target="_blank" class="red-item maps cta-maps"
+        title="Bo. Georgino Andrade, conchita palacios 2c al norte, 1c al este">
         <i class="fa-solid fa-location-dot"></i>
-        Cómo llegar
+        <span class="red-nombre">Cómo llegar</span>
       </a>
     </div>
 
   </header>
 
-  <!-- ============================================
-       BARRA INFORMATIVA: venta al detalle y por mayor
-       ============================================ -->
-  <div class="info-bar">
-    <p>🛍️ Venta al detalle y al por mayor — Escríbenos por WhatsApp para precios especiales en cantidad</p>
-  </div>
 
   <!-- ============================================
-       CATÁLOGO: grid con todas las tarjetas de producto
+       CATÁLOGO: Hot Selling (Más Vendidos)
        ============================================ -->
-  <div class="catalogo">
+  <div class="seccion-contenedor">
+    <h2 class="seccion-titulo"><i class="fa-solid fa-fire"></i> Hot Selling — Más Vendidos</h2>
+    
+    <div class="catalogo">
 
-    <!-- PRODUCTO 1 -->
-    <div class="producto">
-      <img src="https://placehold.co/400x300?text=KZ+EDX+Pro" alt="KZ EDX Pro">
-      <div class="producto-info">
-        <h2>KZ EDX Pro</h2>
-        <p>Audífonos in-ear con doble driver, graves potentes y excelente claridad en agudos.</p>
-        <div class="precio">$XX.XX</div>
-        <!-- Cambia "TUNUMERO" por tu número real con código de país (ej: 50585944758) -->
-        <a class="btn-whatsapp" href="https://wa.me/TUNUMERO?text=Hola,%20me%20interesa%20el%20KZ%20EDX%20Pro" target="_blank">
-          Comprar por WhatsApp
-        </a>
+      <!-- PRODUCTO 1: KZ EDX Pro -->
+      <div class="producto">
+        <img src="https://placehold.co/400x300?text=KZ+EDX+Pro" alt="KZ EDX Pro">
+        <div class="producto-info">
+          <h2>KZ EDX Pro</h2>
+          <p>Audífonos in-ear con doble driver dinámico, graves potentes y excelente definición para monitoreo.</p>
+          <div class="precio">$XX.XX</div>
+          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20EDX%20Pro" target="_blank">
+            Comprar por WhatsApp
+          </a>
+        </div>
       </div>
-    </div>
 
-    <!-- PRODUCTO 2 -->
-    <div class="producto">
-      <img src="https://placehold.co/400x300?text=KZ+Castor" alt="KZ Castor">
-      <div class="producto-info">
-        <h2>KZ Castor</h2>
-        <p>Híbridos con driver dinámico y balanced armature, sonido equilibrado y detallado.</p>
-        <div class="precio">$XX.XX</div>
-        <a class="btn-whatsapp" href="https://wa.me/TUNUMERO?text=Hola,%20me%20interesa%20el%20KZ%20Castor" target="_blank">
-          Comprar por WhatsApp
-        </a>
+      <!-- PRODUCTO 2: KZ Castor -->
+      <div class="producto">
+        <img src="https://placehold.co/400x300?text=KZ+Castor" alt="KZ Castor">
+        <div class="producto-info">
+          <h2>KZ Castor</h2>
+          <p>Audífonos in-ear de alto rendimiento con driver dinámico dual y switches físicos para ecualización de graves.</p>
+          <div class="precio">$XX.XX</div>
+          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20Castor" target="_blank">
+            Comprar por WhatsApp
+          </a>
+        </div>
       </div>
-    </div>
 
-    <!-- PRODUCTO 3 (plantilla: copia este bloque completo para agregar más productos) -->
-    <div class="producto">
-      <img src="https://placehold.co/400x300?text=Otro+Modelo" alt="Otro Modelo">
-      <div class="producto-info">
-        <h2>Nombre del producto</h2>
-        <p>Descripción corta del producto.</p>
-        <div class="precio">$XX.XX</div>
-        <a class="btn-whatsapp" href="https://wa.me/TUNUMERO?text=Hola,%20me%20interesa%20este%20producto" target="_blank">
-          Comprar por WhatsApp
-        </a>
+      <!-- PRODUCTO 3: KZ Castor Pro -->
+      <div class="producto">
+        <img src="https://placehold.co/400x300?text=KZ+Castor+Pro" alt="KZ Castor Pro">
+        <div class="producto-info">
+          <h2>KZ Castor Pro</h2>
+          <p>Versión mejorada con mayor claridad en frecuencias medias y agudas y switches de ajuste acústico profesional.</p>
+          <div class="precio">$XX.XX</div>
+          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20Castor%20Pro" target="_blank">
+            Comprar por WhatsApp
+          </a>
+        </div>
       </div>
-    </div>
 
+      <!-- PRODUCTO 4: KZ AZ09 -->
+      <div class="producto">
+        <img src="https://placehold.co/400x300?text=KZ+AZ09" alt="KZ AZ09">
+        <div class="producto-info">
+          <h2>KZ AZ09</h2>
+          <p>Módulos Bluetooth 5.2 de alta definición para convertir tus audífonos in-ear cableados en inalámbricos (TWS).</p>
+          <div class="precio">$XX.XX</div>
+          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20AZ09" target="_blank">
+            Comprar por WhatsApp
+          </a>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- ============================================
@@ -117,5 +179,48 @@
     <p>Hecho por Ing. Gerald Aburto</p>
     <p>Contacto: <a href="mailto:ingaburtogerald@gmail.com" style="color: #38bdf8;">ingaburtogerald@gmail.com</a></p>
   </footer>
+
+  <!-- ============================================
+       SCRIPT PARA INTERACTIVIDAD DEL MENÚ LATERAL
+       ============================================ -->
+  <script>
+    const openMenuBtn = document.getElementById('open-menu');
+    const closeMenuBtn = document.getElementById('close-menu');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+    // Función para abrir el menú
+    function openMenu() {
+      sidebar.classList.add('active');
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Función para cerrar el menú
+    function closeMenu() {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Event Listeners
+    openMenuBtn.addEventListener('click', openMenu);
+    closeMenuBtn.addEventListener('click', closeMenu);
+    overlay.addEventListener('click', closeMenu);
+
+    // Cerrar al hacer clic en un enlace de categoría
+    sidebarLinks.forEach(link => {
+      link.addEventListener('click', closeMenu);
+    });
+
+    // Cerrar con la tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeMenu();
+      }
+    });
+  </script>
 </body>
+
 </html>
