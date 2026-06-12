@@ -1,7 +1,5 @@
 /* ============================================
    RESET GENERAL
-   Quita márgenes/paddings por defecto y aplica
-   la fuente base a todos los elementos
    ============================================ */
 * {
   margin: 0;
@@ -10,43 +8,31 @@
   font-family: 'Segoe UI', Arial, sans-serif;
 }
 
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background-color: #f4f4f4;
   color: #222;
 }
 
 /* ============================================
-   HEADER - Grid de 3 columnas
+   HEADER
    ============================================ */
 header {
   background-color: #1a1a2e;
   color: #fff;
-  padding: 30px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr; /* izquierda flexible | centro fijo | derecha flexible */
+  width: 100%;
+  min-height: 320px;
+  padding: 50px 30px;
+  display: flex;
   align-items: center;
-  gap: 20px;
-}
-
-.header-izquierda {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.header-titulo {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.redes {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
-  justify-self: end; /* pega las redes a la derecha */
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: relative;
 }
 
 .header-izquierda {
@@ -63,12 +49,6 @@ header img.logo {
   border-radius: 50%;
   border: 3px solid #fff;
   flex-shrink: 0;
-}
-
-.header-izquierda .direccion {
-  font-size: 16px;
-  color: #ccc;
-  padding-top: 8px;
 }
 
 .header-titulo {
@@ -102,6 +82,14 @@ header img.logo {
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.redes .direccion {
+  font-size: 14px;
 }
 
 .redes .red-item {
@@ -130,13 +118,15 @@ header img.logo {
 }
 
 /* ============================================
-   RESPONSIVE: MÓVIL version 2
+   RESPONSIVE: MÓVIL
    ============================================ */
 @media (max-width: 600px) {
   header {
-    grid-template-columns: 1fr; /* una sola columna */
+    flex-direction: column;
+    align-items: center;
     text-align: center;
     padding: 30px 16px;
+    min-height: unset;
   }
 
   header img.logo {
@@ -147,9 +137,16 @@ header img.logo {
   .header-izquierda {
     flex-direction: column;
     align-items: center;
+    order: 0;
     text-align: center;
     gap: 8px;
-    justify-self: center;
+  }
+
+  .header-titulo {
+    position: static;
+    transform: none;
+    order: 1;
+    margin: 12px 0;
   }
 
   .header-titulo h1 {
@@ -157,9 +154,17 @@ header img.logo {
   }
 
   .redes {
+    position: static;
+    transform: none;
+    order: 2;
     align-items: center;
-    justify-self: center;
     width: 100%;
+  }
+
+  .redes .direccion {
+    text-align: center;
+    max-width: 100%;
+    align-self: center;
   }
 
   .redes .red-item {
@@ -289,4 +294,13 @@ footer {
 
 .redes .red-item.instagram:hover {
   filter: brightness(1.1);
+}
+
+.redes .red-item.maps {
+  background-color: #ea4335; /* rojo estilo Google Maps */
+  color: #fff;
+}
+
+.redes .red-item.maps:hover {
+  filter: brightness(0.9);
 }
