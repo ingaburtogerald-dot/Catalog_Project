@@ -77,6 +77,7 @@ header img.logo {
 /* ============================================
    REDES SOCIALES
    ============================================ */
+   
 .redes {
   display: flex;
   flex-direction: column;
@@ -153,13 +154,6 @@ header img.logo {
     font-size: 22px;
   }
 
-  .redes {
-    position: static;
-    transform: none;
-    order: 2;
-    align-items: center;
-    width: 100%;
-  }
 
   .redes .direccion {
     text-align: center;
