@@ -20,6 +20,16 @@
     "detailUrl": "in-ear/kz-castor.html"
   },
   {
+    "id": "attack-shark-x11",
+    "name": "Attack Shark X11",
+    "category": "computadoras",
+    "image": "images_resources/Attack%20Shark%20X11/Black.png",
+    "description": "Mouse gamer inalámbrico de 63g con sensor PixArt PAW3311, hasta 22k DPI y base de carga magnética RGB.",
+    "priceDisplay": "Desde C$1,050.00",
+    "price": 1050,
+    "detailUrl": "computadoras/attack-shark-x11.html"
+  },
+  {
     "id": "kz-castor-pro",
     "name": "KZ Castor Pro",
     "category": "in-ear",
@@ -36,15 +46,5 @@
     "description": "Módulos Bluetooth 5.2 de alta definición para convertir tus audífonos in-ear cableados en inalámbricos (TWS).",
     "priceDisplay": "C$750.00",
     "price": 750
-  },
-  {
-    "id": "attack-shark-x11",
-    "name": "Attack Shark X11",
-    "category": "computadoras",
-    "image": "images_resources/Attack%20Shark%20X11/Black.png",
-    "description": "Mouse gamer inalámbrico de 63g con sensor PixArt PAW3311, hasta 22k DPI y base de carga magnética RGB.",
-    "priceDisplay": "Desde C$1,050.00",
-    "price": 1050,
-    "detailUrl": "computadoras/attack-shark-x11.html"
   }
 ]
