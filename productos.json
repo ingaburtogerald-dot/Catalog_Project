@@ -33,10 +33,11 @@
     "id": "kz-castor-pro",
     "name": "KZ Castor Pro",
     "category": "in-ear",
-    "image": "https://placehold.co/400x300?text=KZ+Castor+Pro",
+    "image": "images_resources/KZ Castor/Harman-Mic.jpeg",
     "description": "Versión mejorada con mayor claridad en frecuencias medias y agudas y switches de ajuste acústico profesional.",
-    "priceDisplay": "C$550.00",
-    "price": 550
+    "priceDisplay": "Desde C$550.00",
+    "price": 550,
+    "detailUrl": "in-ear/kz-castor-pro.html"
   },
   {
     "id": "kz-az09",

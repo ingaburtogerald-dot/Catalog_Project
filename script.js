@@ -261,12 +261,24 @@ window.renderCart = function () {
         }
       }
     } else if (item.id === 'kz-castor-pro') {
-      basePrice = 550;
+      basePrice = item.price; // C$550 (Harman) o C$590 (Bass)
       const qty = item.quantity;
-      if (qty >= 3 && qty <= 5) {
-        unitPrice = 510;
-      } else if (qty >= 6) {
-        unitPrice = 490;
+      if (basePrice === 550) { // Harman Target
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 510;
+        } else if (qty >= 6) {
+          unitPrice = 490;
+        } else {
+          unitPrice = 550;
+        }
+      } else { // Bass Improved (590)
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 550;
+        } else if (qty >= 6) {
+          unitPrice = 530;
+        } else {
+          unitPrice = 590;
+        }
       }
     } else if (item.id === 'kz-az09') {
       basePrice = 750;
@@ -463,12 +475,24 @@ window.checkoutCart = function () {
         }
       }
     } else if (item.id === 'kz-castor-pro') {
-      basePrice = 550;
+      basePrice = item.price; // C$550 (Harman) o C$590 (Bass)
       const qty = item.quantity;
-      if (qty >= 3 && qty <= 5) {
-        unitPrice = 510;
-      } else if (qty >= 6) {
-        unitPrice = 490;
+      if (basePrice === 550) { // Harman Target
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 510;
+        } else if (qty >= 6) {
+          unitPrice = 490;
+        } else {
+          unitPrice = 550;
+        }
+      } else { // Bass Improved (590)
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 550;
+        } else if (qty >= 6) {
+          unitPrice = 530;
+        } else {
+          unitPrice = 590;
+        }
       }
     } else if (item.id === 'kz-az09') {
       basePrice = 750;
