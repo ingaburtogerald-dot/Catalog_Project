@@ -40,17 +40,16 @@
 
     <nav class="sidebar-nav">
       <ul>
-        <li><a href="#catalogo" class="sidebar-link">Audífonos In-Ear <i class="fa-solid fa-arrow-right-long"></i></a>
+        <li><a href="in-ear.html" class="sidebar-link">Audífonos In-Ear <i class="fa-solid fa-arrow-right-long"></i></a>
         </li>
-        <li><a href="#catalogo" class="sidebar-link">Audífonos Diadema <i class="fa-solid fa-arrow-right-long"></i></a>
-        </li>
-        <li><a href="#catalogo" class="sidebar-link">Accesorios de Audio <i
+        <li><a href="#catalogo" class="sidebar-link" data-filter="diadema">Audífonos Diadema <i
               class="fa-solid fa-arrow-right-long"></i></a></li>
-        <li><a href="#catalogo" class="sidebar-link">Bluetooth & Wireless <i
+        <li><a href="#catalogo" class="sidebar-link" data-filter="accesorios">Accesorios de Audio <i
               class="fa-solid fa-arrow-right-long"></i></a></li>
-        <li><a href="#catalogo" class="sidebar-link">Nuevos Modelos <i class="fa-solid fa-arrow-right-long"></i></a>
-        </li>
-        <li><a href="#catalogo" class="sidebar-link">Marcas <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link" data-filter="bluetooth">Bluetooth & Wireless <i
+              class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="#catalogo" class="sidebar-link" data-filter="todos">Ver Todo el Catálogo <i
+              class="fa-solid fa-arrow-right-long"></i></a></li>
       </ul>
     </nav>
 
@@ -116,72 +115,79 @@
 
 
   <!-- ============================================
-       CATÁLOGO: Hot Selling (Más Vendidos)
+       CATÁLOGO: Los artículos más vendidos
        ============================================ -->
-  <div class="seccion-contenedor">
-    <h2 class="seccion-titulo"><i class="fa-solid fa-fire"></i> Hot Selling — Más Vendidos</h2>
+  <div class="seccion-contenedor" id="catalogo">
+    <h2 class="seccion-titulo"><i class="fa-solid fa-fire"></i> Los artículos más vendidos en Gyro Store</h2>
 
     <div class="catalogo">
 
       <!-- PRODUCTO 1: KZ EDX Pro X -->
-      <div class="producto">
-        <a href="kz-edx-pro.html" class="producto-link">
-          <img src="images_resources/1.jpg" alt="KZ EDX Pro X">
+      <div class="producto" data-category="in-ear">
+        <a href="in-ear/kz-edx-pro.html" class="producto-link">
+          <img src="images_resources/KZ%20EDX%20Pro%20X/Black-Mic.jpeg" alt="KZ EDX Pro X">
         </a>
         <div class="producto-info">
-          <h2><a href="kz-edx-pro.html" class="producto-titulo-link">KZ EDX Pro X</a></h2>
+          <h2><a href="in-ear/kz-edx-pro.html" class="producto-titulo-link">KZ EDX Pro X</a></h2>
           <p>Audífonos in-ear con doble driver dinámico, graves potentes y excelente definición para monitoreo.</p>
-          <div class="precio">Desde $15.00</div>
-          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20EDX%20Pro%20X"
-            target="_blank">
-            Comprar por WhatsApp
+          <div class="precio">Desde C$430.00</div>
+          <a class="btn-details" href="in-ear/kz-edx-pro.html">
+            <i class="fa-solid fa-circle-info"></i> Ver Detalles
           </a>
         </div>
       </div>
 
       <!-- PRODUCTO 2: KZ Castor -->
-      <div class="producto">
+      <div class="producto" data-category="in-ear">
         <img src="https://placehold.co/400x300?text=KZ+Castor" alt="KZ Castor">
         <div class="producto-info">
           <h2>KZ Castor</h2>
           <p>Audífonos in-ear de alto rendimiento con driver dinámico dual y switches físicos para ecualización de
             graves.</p>
-          <div class="precio">$XX.XX</div>
-          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20Castor"
-            target="_blank">
-            Comprar por WhatsApp
-          </a>
+          <div class="precio">C$480.00</div>
+          <button class="btn-add-cart" data-id="kz-castor" data-name="KZ Castor" data-price="480"
+            data-image="https://placehold.co/400x300?text=KZ+Castor">
+            <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+          </button>
         </div>
       </div>
 
       <!-- PRODUCTO 3: KZ Castor Pro -->
-      <div class="producto">
+      <div class="producto" data-category="in-ear">
         <img src="https://placehold.co/400x300?text=KZ+Castor+Pro" alt="KZ Castor Pro">
         <div class="producto-info">
           <h2>KZ Castor Pro</h2>
           <p>Versión mejorada con mayor claridad en frecuencias medias y agudas y switches de ajuste acústico
             profesional.</p>
-          <div class="precio">$XX.XX</div>
-          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20Castor%20Pro"
-            target="_blank">
-            Comprar por WhatsApp
-          </a>
+          <div class="precio">C$550.00</div>
+          <button class="btn-add-cart" data-id="kz-castor-pro" data-name="KZ Castor Pro" data-price="550"
+            data-image="https://placehold.co/400x300?text=KZ+Castor+Pro">
+            <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+          </button>
         </div>
       </div>
 
       <!-- PRODUCTO 4: KZ AZ09 -->
-      <div class="producto">
+      <div class="producto" data-category="bluetooth">
         <img src="https://placehold.co/400x300?text=KZ+AZ09" alt="KZ AZ09">
         <div class="producto-info">
           <h2>KZ AZ09</h2>
           <p>Módulos Bluetooth 5.2 de alta definición para convertir tus audífonos in-ear cableados en inalámbricos
             (TWS).</p>
-          <div class="precio">$XX.XX</div>
-          <a class="btn-whatsapp" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20el%20KZ%20AZ09"
-            target="_blank">
-            Comprar por WhatsApp
-          </a>
+          <div class="precio">C$750.00</div>
+          <button class="btn-add-cart" data-id="kz-az09" data-name="KZ AZ09" data-price="750"
+            data-image="https://placehold.co/400x300?text=KZ+AZ09">
+            <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+          </button>
         </div>
+      </div>
+
+      <!-- Mensaje de categoría vacía -->
+      <div class="no-products-message" id="no-products-message"
+        style="display: none; grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748b;">
+        <i class="fa-regular fa-folder-open"
+          style="font-size: 36px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
+        <p style="font-weight: 500;">Próximamente más productos en esta categoría</p>
       </div>
 
     </div>
@@ -197,46 +203,52 @@
   </footer>
 
   <!-- ============================================
+       CARRITO DE COMPRAS DRAWER & BOTÓN FLOTANTE
+       ============================================ -->
+  <div class="cart-overlay" id="cart-overlay"></div>
+
+  <div class="cart-drawer" id="cart-drawer">
+    <div class="cart-header">
+      <h3><i class="fa-solid fa-cart-shopping"></i> Tu Carrito</h3>
+      <button class="btn-close-cart" id="close-cart" aria-label="Cerrar carrito">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="cart-body" id="cart-items-container">
+      <!-- Elementos del carrito cargados dinámicamente -->
+    </div>
+
+    <div class="cart-footer">
+      <div class="cart-summary">
+        <div class="cart-summary-row">
+          <span>Subtotal:</span>
+          <span id="cart-subtotal">C$0.00</span>
+        </div>
+        <div class="cart-summary-row discount" id="cart-discount-row" style="display: none;">
+          <span>Descuento de volumen:</span>
+          <span id="cart-discount">-C$0.00</span>
+        </div>
+        <div class="cart-summary-row total">
+          <span>Total a pagar:</span>
+          <span id="cart-total">C$0.00</span>
+        </div>
+      </div>
+      <button class="btn-checkout-whatsapp" id="checkout-whatsapp">
+        <i class="fa-brands fa-whatsapp"></i> Finalizar Pedido por WhatsApp
+      </button>
+    </div>
+  </div>
+
+  <button class="btn-cart-float" id="cart-float-btn" aria-label="Ver carrito">
+    <i class="fa-solid fa-cart-shopping"></i>
+    <span class="cart-badge" id="cart-badge-count">0</span>
+  </button>
+
+  <!-- ============================================
        SCRIPT PARA INTERACTIVIDAD DEL MENÚ LATERAL
        ============================================ -->
-  <script>
-    const openMenuBtn = document.getElementById('open-menu');
-    const closeMenuBtn = document.getElementById('close-menu');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const sidebarLinks = document.querySelectorAll('.sidebar-link');
-
-    // Función para abrir el menú
-    function openMenu() {
-      sidebar.classList.add('active');
-      overlay.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    }
-
-    // Función para cerrar el menú
-    function closeMenu() {
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.style.overflow = '';
-    }
-
-    // Event Listeners
-    openMenuBtn.addEventListener('click', openMenu);
-    closeMenuBtn.addEventListener('click', closeMenu);
-    overlay.addEventListener('click', closeMenu);
-
-    // Cerrar al hacer clic en un enlace de categoría
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', closeMenu);
-    });
-
-    // Cerrar con la tecla Escape
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeMenu();
-      }
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 
 </html>
