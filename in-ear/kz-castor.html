@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KZ EDX Pro X - Gyro Store</title>
+  <title>KZ Castor - Gyro Store</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +37,7 @@
         <li><a href="../index.html#catalogo" class="sidebar-link">Audífonos Diadema <i class="fa-solid fa-arrow-right-long"></i></a></li>
         <li><a href="../index.html#catalogo" class="sidebar-link">Accesorios de Audio <i class="fa-solid fa-arrow-right-long"></i></a></li>
         <li><a href="../index.html#catalogo" class="sidebar-link">Bluetooth & Wireless <i class="fa-solid fa-arrow-right-long"></i></a></li>
-        <li><a href="../index.html#catalogo" class="sidebar-link">Ver Todo el Catálogo <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="../index.html" class="sidebar-link">Ver Todo el Catálogo <i class="fa-solid fa-arrow-right-long"></i></a></li>
       </ul>
     </nav>
 
@@ -79,32 +79,45 @@
         <div class="carousel-contenedor">
           <div class="carousel-slides">
             <div class="carousel-slide active">
-              <img id="carousel-img-1" src="../images_resources/KZ EDX Pro X/Black-Mic.jpeg" alt="KZ EDX Pro X - Con Micrófono">
+              <img id="carousel-img-1" src="../images_resources/KZ Castor/Harman-Mic.jpeg" alt="KZ Castor Harman (Gris)">
+            </div>
+            <div class="carousel-slide">
+              <img id="carousel-img-2" src="../images_resources/KZ Castor/Harman-no-Mic.jpeg" alt="KZ Castor Harman (Gris) - Detalle">
             </div>
           </div>
           <!-- Flechas de navegación -->
-          <button class="carousel-control prev" id="carousel-prev" aria-label="Foto anterior" style="display: none;">
+          <button class="carousel-control prev" id="carousel-prev" aria-label="Foto anterior">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <button class="carousel-control next" id="carousel-next" aria-label="Foto siguiente" style="display: none;">
+          <button class="carousel-control next" id="carousel-next" aria-label="Foto siguiente">
             <i class="fa-solid fa-chevron-right"></i>
           </button>
           <!-- Puntos indicadores (dots) -->
-          <div class="carousel-indicadores" style="display: none;">
+          <div class="carousel-indicadores">
             <span class="indicador active" data-index="0"></span>
+            <span class="indicador" data-index="1"></span>
           </div>
         </div>
       </div>
       
       <!-- Columna Derecha: Información y detalles -->
       <div class="detalle-info">
-        <h1 class="detalle-titulo">KZ EDX Pro X</h1>
-        <p class="detalle-sub">Audífonos In-Ear de Monitoreo Profesional</p>
-        <div class="detalle-precio">C$430.00</div>
+        <h1 class="detalle-titulo">KZ Castor</h1>
+        <p class="detalle-sub">Audífonos In-Ear con Driver Dinámico Dual y Ecualizador</p>
+        <div class="detalle-precio">C$660.00</div>
         
         <hr class="detalle-divisor">
 
-        <!-- Selector de Versiones (Variantes) -->
+        <!-- Selector de Versiones (Harman vs Bass) -->
+        <div class="variante-seccion">
+          <span class="variante-titulo">Versión Acústica: <strong id="version-seleccionada-nombre" style="color: #4f46e5;">Harman Target (Gris)</strong></span>
+          <div class="variante-opciones" id="version-opciones">
+            <button class="variante-chip active" data-value="Harman Target" data-color-name="Gris" data-img-placeholder="../images_resources/KZ Castor/Harman-Mic.jpeg">Harman Target (Gris)</button>
+            <button class="variante-chip" data-value="Bass Improved" data-color-name="Negro" data-img-placeholder="../images_resources/KZ Castor/Bass-Mic.jpeg">Improved Bass (Negro)</button>
+          </div>
+        </div>
+
+        <!-- Selector de Conector -->
         <div class="variante-seccion">
           <span class="variante-titulo">Conector:</span>
           <div class="variante-opciones" id="conector-opciones">
@@ -113,22 +126,12 @@
           </div>
         </div>
 
+        <!-- Selector de Micrófono -->
         <div class="variante-seccion">
           <span class="variante-titulo">Micrófono:</span>
           <div class="variante-opciones" id="mic-opciones">
             <button class="variante-chip disabled" data-value="Sin Micrófono" disabled>Sin Micrófono</button>
             <button class="variante-chip active" data-value="Con Micrófono">Con Micrófono</button>
-          </div>
-        </div>
-
-        <!-- Selector de Color (Estilo Amazon) -->
-        <div class="variante-seccion">
-          <span class="variante-titulo">Color: <strong id="color-seleccionado-nombre">Negro</strong></span>
-          <div class="color-opciones" id="color-opciones">
-            <button class="color-chip active" data-color="Negro" data-image="../images_resources/KZ EDX Pro X/Black-Mic.jpeg" style="background-image: url('../images_resources/KZ%20EDX%20Pro%20X/Black-Mic.jpeg');" title="Negro"></button>
-            <button class="color-chip" data-color="Gris" data-image="../images_resources/KZ EDX Pro X/Gray-Mic.jpeg" style="background-image: url('../images_resources/KZ%20EDX%20Pro%20X/Gray-Mic.jpeg');" title="Gris"></button>
-            <button class="color-chip" data-color="Turquesa" data-image="../images_resources/KZ EDX Pro X/Cyan-Mic.jpeg" style="background-image: url('../images_resources/KZ%20EDX%20Pro%20X/Cyan-Mic.jpeg');" title="Turquesa"></button>
-            <button class="color-chip" data-color="Transparente" data-image="../images_resources/KZ EDX Pro X/Clear-Mic.jpeg" style="background-image: url('../images_resources/KZ%20EDX%20Pro%20X/Clear-Mic.jpeg');" title="Transparente"></button>
           </div>
         </div>
 
@@ -145,10 +148,10 @@
           <div class="descuento-info-banner">
             <i class="fa-solid fa-tags"></i>
             <span>
-              <strong>1-2 uds:</strong> C$430 c/u | 
-              <strong>3-5 uds:</strong> C$390 c/u | 
-              <strong>6-11 uds:</strong> C$370 c/u | 
-              <strong>12+ uds:</strong> C$350 c/u
+              <strong>1-2 uds:</strong> C$660 | 
+              <strong>3-5 uds:</strong> C$600 | 
+              <strong>6-11 uds:</strong> C$560 | 
+              <strong>12+ uds:</strong> C$530
             </span>
           </div>
         </div>
@@ -157,11 +160,11 @@
         <div class="precio-resumen" id="precio-resumen">
           <div class="resumen-item">
             <span>Precio Unitario:</span>
-            <span id="resumen-unitario">C$430.00</span>
+            <span id="resumen-unitario">C$660.00</span>
           </div>
           <div class="resumen-item total">
             <span>Total a Pagar:</span>
-            <span id="resumen-total">C$430.00</span>
+            <span id="resumen-total">C$660.00</span>
           </div>
         </div>
 
@@ -169,7 +172,7 @@
           <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
         </button>
 
-        <a class="btn-whatsapp-comprar" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20comprar%20el%20KZ%20EDX%20Pro%20X" target="_blank">
+        <a class="btn-whatsapp-comprar" href="https://wa.me/50585944758?text=Hola,%20me%20interesa%20comprar%20el%20KZ%20Castor" target="_blank">
           <i class="fa-brands fa-whatsapp"></i> Comprar ya (Directo por WhatsApp)
         </a>
 
@@ -177,7 +180,7 @@
         
         <div class="detalle-seccion">
           <h3>Descripción</h3>
-          <p>Los KZ EDX Pro X son audífonos de monitoreo in-ear equipados con un driver dinámico de doble circuito magnético de 10mm. Destacan por su excelente respuesta en frecuencias bajas (graves potentes), voces claras y agudos definidos sin fatiga. Su diseño ergonómico de resina transparente y cable desmontable de 2 pines chapado en plata los convierten en la opción ideal tanto para músicos en escenario como para entusiastas de la música en el día a día.</p>
+          <p>Los KZ Castor son audífonos in-ear revolucionarios que incorporan un diseño de driver dinámico dual avanzado (uno para frecuencias graves y otro para medias/agudas) y switches físicos de ecualización en la parte posterior. Vienen en dos ediciones acústicas afinadas profesionalmente: la versión Harman Target (diseño gris con una respuesta de frecuencia equilibrada y natural) y la versión Bass Improved (diseño negro para los amantes de los graves profundos y retumbantes).</p>
         </div>
 
         <div class="detalle-seccion">
@@ -189,23 +192,23 @@
             </tr>
             <tr>
               <td><strong>Driver:</strong></td>
-              <td>Dinámico de 10mm dual magnético</td>
+              <td>Dinámico Dual (10mm + 8mm)</td>
             </tr>
             <tr>
               <td><strong>Impedancia:</strong></td>
-              <td>24Ω</td>
+              <td>16 - 20Ω (según versión)</td>
             </tr>
             <tr>
               <td><strong>Sensibilidad:</strong></td>
-              <td>112dB/mW</td>
+              <td>103dB/mW</td>
             </tr>
             <tr>
               <td><strong>Rango de frecuencia:</strong></td>
-              <td>10Hz - 20kHz</td>
+              <td>20Hz - 40kHz</td>
             </tr>
             <tr>
               <td><strong>Tipo de conector:</strong></td>
-              <td>Jack 3.5mm en L (90°)</td>
+              <td>Jack 3.5mm o Tipo C (según versión)</td>
             </tr>
             <tr>
               <td><strong>Tipo de pin:</strong></td>
@@ -223,18 +226,7 @@
         </div>
       </div>
     </section>
-
-
   </div>
-
-  <!-- ============================================
-       FOOTER: información de contacto y créditos
-       ============================================ -->
-  <footer style="text-align: center; padding: 20px; background-color: #0f172a; color: white; font-size: 12px; margin-top: 40px;">
-    <p>© 2026 Gyro Store</p>
-    <p>Hecho por Ing. Gerald Aburto</p>
-    <p>Contacto: <a href="mailto:ingaburtogerald@gmail.com" style="color: #38bdf8;">ingaburtogerald@gmail.com</a></p>
-  </footer>
 
   <!-- ============================================
        CARRITO DE COMPRAS DRAWER & BOTÓN FLOTANTE
@@ -296,7 +288,7 @@
       overlay.classList.add('active');
       document.body.style.overflow = 'hidden';
 
-      // Animación secuencial de entrada de los enlaces (Staggered animation)
+      // Animación secuencial de entrada de los enlaces
       const menuItems = sidebar.querySelectorAll('.sidebar-nav ul li');
       menuItems.forEach((item, index) => {
         item.style.transitionDelay = `${(index + 1) * 0.06}s`;
@@ -325,12 +317,10 @@
     closeMenuBtn.addEventListener('click', closeMenu);
     overlay.addEventListener('click', closeMenu);
 
-    // Cerrar al hacer clic en un enlace de categoría
     sidebarLinks.forEach(link => {
       link.addEventListener('click', closeMenu);
     });
 
-    // Cerrar con la tecla Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeMenu();
@@ -364,83 +354,100 @@
     }
 
     // ============================================
-    // LÓGICA DE VARIANTES, CANTIDAD Y DESCUENTOS
+    // LÓGICA DE VARIANTES, CANTIDAD Y DESCUENTOS (KZ CASTOR)
     // ============================================
-    const preciosVariantes = {
-      'Jack 3.5mm_Con Micrófono': 430.00
-    };
-
+    const versionChips = document.querySelectorAll('#version-opciones .variante-chip');
     const conectorChips = document.querySelectorAll('#conector-opciones .variante-chip');
     const micChips = document.querySelectorAll('#mic-opciones .variante-chip');
     const precioEl = document.querySelector('.detalle-precio');
     const whatsappBtn = document.querySelector('.btn-whatsapp-comprar');
 
-    // Selectores para Cantidad
     const btnMinus = document.getElementById('qty-minus');
     const btnPlus = document.getElementById('qty-plus');
     const qtyValEl = document.getElementById('qty-val');
 
-    // Elementos del resumen de compra
     const resumenUnitario = document.getElementById('resumen-unitario');
     const resumenTotal = document.getElementById('resumen-total');
 
-    // Selectores para Color
-    const colorChips = document.querySelectorAll('.color-chip');
-    const colorNombreEl = document.getElementById('color-seleccionado-nombre');
+    const versionNombreEl = document.getElementById('version-seleccionada-nombre');
     const img1El = document.getElementById('carousel-img-1');
     const img2El = document.getElementById('carousel-img-2');
 
-    // Mapeo de imágenes por color
-    const imagenesColor = {
-      'Negro': {
-        'conMic': '../images_resources/KZ EDX Pro X/Black-Mic.jpeg',
-        'sinMic': '../images_resources/KZ EDX Pro X/Black-No_Mic.jpeg'
+    // Mapeo de fotos por versión
+    const imagenesVersion = {
+      'Harman Target': {
+        'conMic': '../images_resources/KZ Castor/Harman-Mic.jpeg',
+        'sinMic': '../images_resources/KZ Castor/Harman-no-Mic.jpeg',
+        'fallback': '../images_resources/KZ Castor/Harman-Mic.jpeg'
       },
-      'Gris': {
-        'conMic': '../images_resources/KZ EDX Pro X/Gray-Mic.jpeg',
-        'sinMic': '../images_resources/KZ EDX Pro X/Gray-No_Mic.jpeg'
-      },
-      'Turquesa': {
-        'conMic': '../images_resources/KZ EDX Pro X/Cyan-Mic.jpeg',
-        'sinMic': '../images_resources/KZ EDX Pro X/Cyan-No-Mic.jpeg'
-      },
-      'Transparente': {
-        'conMic': '../images_resources/KZ EDX Pro X/Clear-Mic.jpeg',
-        'sinMic': '../images_resources/KZ EDX Pro X/Clear-No-Mic.jpeg'
+      'Bass Improved': {
+        'conMic': '../images_resources/KZ Castor/Bass-Mic.jpeg',
+        'sinMic': '../images_resources/KZ Castor/Bass-No-Mic.jpeg',
+        'fallback': '../images_resources/KZ Castor/Bass-Mic.jpeg'
       }
     };
 
+    let versionSeleccionada = 'Harman Target';
     let conectorSeleccionado = 'Jack 3.5mm';
     let micSeleccionado = 'Con Micrófono';
-    let colorSeleccionado = 'Negro';
     let cantidad = 1;
 
     function actualizarVariante() {
-      // Calcular precio unitario según escala de volumen
-      let precioUnitario = 430;
-      if (cantidad >= 3 && cantidad <= 5) {
-        precioUnitario = 390;
-      } else if (cantidad >= 6 && cantidad <= 11) {
-        precioUnitario = 370;
-      } else if (cantidad >= 12) {
-        precioUnitario = 350;
+      // Precios del KZ Castor según la versión
+      let precioUnitario = 660;
+      let escalaHtml = '';
+
+      if (versionSeleccionada === 'Harman Target') {
+        escalaHtml = `
+          <strong>1-2 uds:</strong> C$660 | 
+          <strong>3-5 uds:</strong> C$600 | 
+          <strong>6-11 uds:</strong> C$560 | 
+          <strong>12+ uds:</strong> C$530
+        `;
+        if (cantidad >= 3 && cantidad <= 5) {
+          precioUnitario = 600;
+        } else if (cantidad >= 6 && cantidad <= 11) {
+          precioUnitario = 560;
+        } else if (cantidad >= 12) {
+          precioUnitario = 530;
+        } else {
+          precioUnitario = 660;
+        }
+      } else { // Bass Improved
+        escalaHtml = `
+          <strong>1-2 uds:</strong> C$700 | 
+          <strong>3-5 uds:</strong> C$640 | 
+          <strong>6-11 uds:</strong> C$600 | 
+          <strong>12+ uds:</strong> C$570
+        `;
+        if (cantidad >= 3 && cantidad <= 5) {
+          precioUnitario = 640;
+        } else if (cantidad >= 6 && cantidad <= 11) {
+          precioUnitario = 600;
+        } else if (cantidad >= 12) {
+          precioUnitario = 570;
+        } else {
+          precioUnitario = 700;
+        }
       }
 
       const total = precioUnitario * cantidad;
 
-      // Actualizar precio base en pantalla
       precioEl.textContent = `C$${precioUnitario.toFixed(2)}`;
-
-      // Actualizar valor de cantidad en pantalla
       qtyValEl.textContent = cantidad;
 
-      // Actualizar resumen de compra
       resumenUnitario.textContent = `C$${precioUnitario.toFixed(2)}`;
       resumenTotal.textContent = `C$${total.toFixed(2)}`;
 
-      // Formatear mensaje de WhatsApp
-      let mensaje = `Hola, me interesa comprar el KZ EDX Pro X con las siguientes especificaciones:\n\n`;
-      mensaje += `· Color: ${colorSeleccionado}\n`;
+      // Actualizar texto del banner de escala de precios
+      const bannerSpan = document.querySelector('.descuento-info-banner span');
+      if (bannerSpan) {
+        bannerSpan.innerHTML = escalaHtml;
+      }
+
+      // Formatear mensaje de WhatsApp para el botón directo
+      let mensaje = `Hola, me interesa comprar el KZ Castor con las siguientes especificaciones:\n\n`;
+      mensaje += `· Versión: ${versionSeleccionada}\n`;
       mensaje += `· Conector: ${conectorSeleccionado}\n`;
       mensaje += `· Micrófono: ${micSeleccionado}\n`;
       mensaje += `· Cantidad: ${cantidad} unidad${cantidad > 1 ? 'es' : ''}\n\n`;
@@ -455,7 +462,7 @@
     }
 
     function actualizarImagenes() {
-      const imgs = imagenesColor[colorSeleccionado];
+      const imgs = imagenesVersion[versionSeleccionada];
       if (!imgs) return;
 
       const slides = document.querySelectorAll('.carousel-slide');
@@ -465,9 +472,9 @@
 
       // Determinar cuál imagen debemos mostrar en el slide activo
       const activeImgSrc = micSeleccionado === 'Con Micrófono' ? imgs.conMic : imgs.sinMic;
-      if (img1El) img1El.src = activeImgSrc;
+      img1El.src = activeImgSrc;
 
-      // Ocultamos el segundo slide si existiera
+      // Ocultamos el segundo slide
       if (slides[1]) {
         slides[1].style.display = 'none';
       }
@@ -480,7 +487,19 @@
       showSlide(0);
     }
 
-    // Eventos para conector (actualmente bloqueado por stock)
+    // Eventos para Versión Acústica
+    versionChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        versionChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        versionSeleccionada = chip.getAttribute('data-value');
+        const colorName = chip.getAttribute('data-color-name');
+        versionNombreEl.textContent = `${versionSeleccionada} (${colorName})`;
+        actualizarVariante();
+      });
+    });
+
+    // Eventos para Conector
     conectorChips.forEach(chip => {
       chip.addEventListener('click', () => {
         if (chip.classList.contains('disabled')) return;
@@ -491,24 +510,13 @@
       });
     });
 
-    // Eventos para micrófono (actualmente bloqueado por stock)
+    // Eventos para Micrófono
     micChips.forEach(chip => {
       chip.addEventListener('click', () => {
         if (chip.classList.contains('disabled')) return;
         micChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         micSeleccionado = chip.getAttribute('data-value');
-        actualizarVariante();
-      });
-    });
-
-    // Eventos para color (Estilo Amazon)
-    colorChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        colorChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        colorSeleccionado = chip.getAttribute('data-color');
-        colorNombreEl.textContent = colorSeleccionado;
         actualizarVariante();
       });
     });
@@ -529,25 +537,23 @@
     // Inicializar variantes al cargar
     actualizarVariante();
 
-    // Evento para agregar al carrito desde el detalle
+    // Evento para agregar al carrito
     const btnAddCartDetail = document.getElementById('btn-add-to-cart-detail');
     if (btnAddCartDetail) {
       btnAddCartDetail.addEventListener('click', () => {
-        const basePrice = 430; // base price for EDX Pro X
+        const basePrice = versionSeleccionada === 'Harman Target' ? 660 : 700;
         
-        // Determinar imagen correcta sin el prefijo de carpeta "../"
-        let imgForCart = imagenesColor[colorSeleccionado][micSeleccionado === 'Con Micrófono' ? 'conMic' : 'sinMic'] || '';
-        if (imgForCart.startsWith('../')) {
-          imgForCart = imgForCart.substring(3);
-        }
+        let imgForCart = versionSeleccionada === 'Harman Target' 
+          ? 'images_resources/KZ Castor/Harman-Mic.jpeg' 
+          : 'images_resources/KZ Castor/Bass-Mic.jpeg';
 
         const productToAdd = {
-          id: 'kz-edx-pro-x',
-          name: 'KZ EDX Pro X',
+          id: 'kz-castor',
+          name: 'KZ Castor',
           price: basePrice,
           image: imgForCart,
           variants: {
-            'Color': colorSeleccionado,
+            'Versión': versionSeleccionada,
             'Conector': conectorSeleccionado,
             'Micrófono': micSeleccionado
           },
@@ -570,7 +576,6 @@
     let currentSlide = 0;
 
     function showSlide(index) {
-      // Validar límites
       if (index >= slides.length) {
         currentSlide = 0;
       } else if (index < 0) {
@@ -579,7 +584,6 @@
         currentSlide = index;
       }
 
-      // Actualizar clases de slides
       slides.forEach((slide, i) => {
         if (i === currentSlide) {
           slide.classList.add('active');
@@ -588,7 +592,6 @@
         }
       });
 
-      // Actualizar indicadores
       indicators.forEach((indicator, i) => {
         if (i === currentSlide) {
           indicator.classList.add('active');
@@ -598,26 +601,15 @@
       });
     }
 
-    // Navegar al anterior
     if (prevBtn) {
-      prevBtn.addEventListener('click', () => {
-        showSlide(currentSlide - 1);
-      });
+      prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
     }
-
-    // Navegar al siguiente
     if (nextBtn) {
-      nextBtn.addEventListener('click', () => {
-        showSlide(currentSlide + 1);
-      });
+      nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
     }
-
-    // Navegar por indicadores (dots)
     if (indicators) {
       indicators.forEach((indicator, i) => {
-        indicator.addEventListener('click', () => {
-          showSlide(i);
-        });
+        indicator.addEventListener('click', () => showSlide(i));
       });
     }
   </script>

@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (seccionTitulo) {
         // Obtenemos el texto del enlace (removiendo el icono y espacios extras)
         const nombreCategoria = link.textContent.replace(/➔|➔/g, '').trim();
-        
+
         if (filter === 'todos') {
           seccionTitulo.innerHTML = `<i class="fa-solid fa-fire"></i> Todos los productos en Gyro Store`;
         } else {
@@ -131,13 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const name = btn.getAttribute('data-name');
       const price = parseFloat(btn.getAttribute('data-price')) || 0;
       const image = btn.getAttribute('data-image');
-      
+
       // Obtener variantes por defecto
       let variants = {};
       const colorVal = btn.getAttribute('data-var-color');
       const conectorVal = btn.getAttribute('data-var-conector');
       const micVal = btn.getAttribute('data-var-mic');
-      
+
       if (colorVal) variants['Color'] = colorVal;
       if (conectorVal) variants['Conector'] = conectorVal;
       if (micVal) variants['Micrófono'] = micVal;
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // FUNCIONES GLOBALES DEL CARRITO DE COMPRAS
 // ============================================
 
-window.openCart = function() {
+window.openCart = function () {
   const drawer = document.getElementById('cart-drawer');
   const overlay = document.getElementById('cart-overlay');
   if (drawer && overlay) {
@@ -173,7 +173,7 @@ window.openCart = function() {
   }
 };
 
-window.closeCart = function() {
+window.closeCart = function () {
   const drawer = document.getElementById('cart-drawer');
   const overlay = document.getElementById('cart-overlay');
   if (drawer && overlay) {
@@ -183,7 +183,7 @@ window.closeCart = function() {
   }
 };
 
-window.renderCart = function() {
+window.renderCart = function () {
   const cart = JSON.parse(localStorage.getItem('gyro_cart')) || [];
   const container = document.getElementById('cart-items-container');
   const badge = document.getElementById('cart-badge-count');
@@ -232,12 +232,28 @@ window.renderCart = function() {
         unitPrice = 350;
       }
     } else if (item.id === 'kz-castor') {
-      basePrice = 480;
+      basePrice = item.price; // C$660 or C$700
       const qty = item.quantity;
-      if (qty >= 3 && qty <= 5) {
-        unitPrice = 440;
-      } else if (qty >= 6) {
-        unitPrice = 420;
+      if (basePrice === 660) { // Harman Target
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 600;
+        } else if (qty >= 6 && qty <= 11) {
+          unitPrice = 560;
+        } else if (qty >= 12) {
+          unitPrice = 530;
+        } else {
+          unitPrice = 660;
+        }
+      } else { // Bass Improved (700)
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 640;
+        } else if (qty >= 6 && qty <= 11) {
+          unitPrice = 600;
+        } else if (qty >= 12) {
+          unitPrice = 570;
+        } else {
+          unitPrice = 700;
+        }
       }
     } else if (item.id === 'kz-castor-pro') {
       basePrice = 550;
@@ -275,11 +291,19 @@ window.renderCart = function() {
       imgPath = '../' + imgPath;
     }
 
+    // Enlace dinámico según el producto
+    let detailLink = '#';
+    if (item.id === 'kz-edx-pro-x') {
+      detailLink = window.location.pathname.includes('/in-ear/') ? 'kz-edx-pro.html' : 'in-ear/kz-edx-pro.html';
+    } else if (item.id === 'kz-castor') {
+      detailLink = window.location.pathname.includes('/in-ear/') ? 'kz-castor.html' : 'in-ear/kz-castor.html';
+    }
+
     html += `
       <div class="cart-item">
         <img class="cart-item-img" src="${imgPath}" alt="${item.name}">
         <div class="cart-item-details">
-          <a href="${item.id === 'kz-edx-pro-x' ? (window.location.pathname.includes('/in-ear/') ? 'kz-edx-pro.html' : 'in-ear/kz-edx-pro.html') : '#'}" class="cart-item-title">${item.name}</a>
+          <a href="${detailLink}" class="cart-item-title">${item.name}</a>
           ${variantsStr ? `<span class="cart-item-variants">${variantsStr}</span>` : ''}
           <span class="cart-item-price">C$${unitPrice.toFixed(2)} c/u</span>
           <div class="cart-item-actions">
@@ -302,7 +326,7 @@ window.renderCart = function() {
   // Actualizar resumen en la UI
   const finalTotal = subtotal - totalDiscount;
   if (subtotalEl) subtotalEl.textContent = `C$${subtotal.toFixed(2)}`;
-  
+
   if (totalDiscount > 0) {
     if (discountRow) discountRow.style.display = 'flex';
     if (discountEl) discountEl.textContent = `-C$${totalDiscount.toFixed(2)}`;
@@ -313,9 +337,9 @@ window.renderCart = function() {
   if (totalEl) totalEl.textContent = `C$${finalTotal.toFixed(2)}`;
 };
 
-window.addToCart = function(product) {
+window.addToCart = function (product) {
   let cart = JSON.parse(localStorage.getItem('gyro_cart')) || [];
-  
+
   // Buscar duplicados con exactamente las mismas variantes seleccionadas
   const existingIndex = cart.findIndex(item => {
     if (item.id !== product.id) return false;
@@ -341,7 +365,7 @@ window.addToCart = function(product) {
   localStorage.setItem('gyro_cart', JSON.stringify(cart));
   window.renderCart();
   window.openCart();
-  
+
   // Efecto visual bump en el badge
   const badge = document.getElementById('cart-badge-count');
   if (badge) {
@@ -350,7 +374,7 @@ window.addToCart = function(product) {
   }
 };
 
-window.updateCartQuantity = function(index, change) {
+window.updateCartQuantity = function (index, change) {
   let cart = JSON.parse(localStorage.getItem('gyro_cart')) || [];
   if (cart[index]) {
     cart[index].quantity += change;
@@ -362,14 +386,14 @@ window.updateCartQuantity = function(index, change) {
   }
 };
 
-window.removeFromCart = function(index) {
+window.removeFromCart = function (index) {
   let cart = JSON.parse(localStorage.getItem('gyro_cart')) || [];
   cart.splice(index, 1);
   localStorage.setItem('gyro_cart', JSON.stringify(cart));
   window.renderCart();
 };
 
-window.checkoutCart = function() {
+window.checkoutCart = function () {
   const cart = JSON.parse(localStorage.getItem('gyro_cart')) || [];
   if (cart.length === 0) return;
 
@@ -392,12 +416,28 @@ window.checkoutCart = function() {
         unitPrice = 350;
       }
     } else if (item.id === 'kz-castor') {
-      basePrice = 480;
+      basePrice = item.price; // C$660 o C$700
       const qty = item.quantity;
-      if (qty >= 3 && qty <= 5) {
-        unitPrice = 440;
-      } else if (qty >= 6) {
-        unitPrice = 420;
+      if (basePrice === 660) { // Harman Target
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 600;
+        } else if (qty >= 6 && qty <= 11) {
+          unitPrice = 560;
+        } else if (qty >= 12) {
+          unitPrice = 530;
+        } else {
+          unitPrice = 660;
+        }
+      } else { // Bass Improved (700)
+        if (qty >= 3 && qty <= 5) {
+          unitPrice = 640;
+        } else if (qty >= 6 && qty <= 11) {
+          unitPrice = 600;
+        } else if (qty >= 12) {
+          unitPrice = 570;
+        } else {
+          unitPrice = 700;
+        }
       }
     } else if (item.id === 'kz-castor-pro') {
       basePrice = 550;
