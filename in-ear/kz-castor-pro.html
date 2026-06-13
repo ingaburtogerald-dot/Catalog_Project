@@ -80,10 +80,10 @@
         <div class="carousel-contenedor">
           <div class="carousel-slides">
             <div class="carousel-slide active">
-              <img id="carousel-img-1" src="../images_resources/KZ Castor/Harman-Mic.jpeg" alt="KZ Castor Pro Harman (Gris)">
+              <img id="carousel-img-1" src="../images_resources/KZ Castor Pro/Harman-Mic.jpeg" alt="KZ Castor Pro Harman (Gris)">
             </div>
             <div class="carousel-slide">
-              <img id="carousel-img-2" src="../images_resources/KZ Castor/Harman-no-Mic.jpeg" alt="KZ Castor Pro Harman (Gris) - Detalle">
+              <img id="carousel-img-2" src="../images_resources/KZ Castor Pro/Harman-no-Mic.jpeg" alt="KZ Castor Pro Harman (Gris) - Detalle">
             </div>
           </div>
           <!-- Flechas de navegación -->
@@ -113,8 +113,8 @@
         <div class="variante-seccion">
           <span class="variante-titulo">Versión Acústica: <strong id="version-seleccionada-nombre" style="color: #4f46e5;">Harman Target (Gris)</strong></span>
           <div class="variante-opciones" id="version-opciones">
-            <button class="variante-chip active" data-value="Harman Target" data-color-name="Gris" data-img-placeholder="../images_resources/KZ Castor/Harman-Mic.jpeg">Harman Target (Gris)</button>
-            <button class="variante-chip" data-value="Bass Improved" data-color-name="Negro" data-img-placeholder="../images_resources/KZ Castor/Bass-Mic.jpeg">Improved Bass (Negro)</button>
+            <button class="variante-chip active" data-value="Harman Target" data-color-name="Gris" data-img-placeholder="../images_resources/KZ Castor Pro/Harman-Mic.jpeg">Harman Target (Gris)</button>
+            <button class="variante-chip" data-value="Bass Improved" data-color-name="Negro" data-img-placeholder="../images_resources/KZ Castor Pro/Bass-Mic.jpeg">Improved Bass (Negro)</button>
           </div>
         </div>
 
@@ -381,14 +381,14 @@
     // Mapeo de fotos por versión
     const imagenesVersion = {
       'Harman Target': {
-        'conMic': '../images_resources/KZ Castor/Harman-Mic.jpeg',
-        'sinMic': '../images_resources/KZ Castor/Harman-no-Mic.jpeg',
-        'fallback': '../images_resources/KZ Castor/Harman-Mic.jpeg'
+        'conMic': '../images_resources/KZ Castor Pro/Harman-Mic.jpeg',
+        'sinMic': '../images_resources/KZ Castor Pro/Harman-no-Mic.jpeg',
+        'fallback': '../images_resources/KZ Castor Pro/Harman-Mic.jpeg'
       },
       'Bass Improved': {
-        'conMic': '../images_resources/KZ Castor/Bass-Mic.jpeg',
-        'sinMic': '../images_resources/KZ Castor/Bass-No-Mic.jpeg',
-        'fallback': '../images_resources/KZ Castor/Bass-Mic.jpeg'
+        'conMic': '../images_resources/KZ Castor Pro/Bass-Mic.jpeg',
+        'sinMic': '../images_resources/KZ Castor Pro/Bass-No-Mic.jpeg',
+        'fallback': '../images_resources/KZ Castor Pro/Bass-Mic.jpeg'
       }
     };
 
@@ -543,8 +543,8 @@
         const basePrice = versionSeleccionada === 'Harman Target' ? 550 : 590;
         
         let imgForCart = versionSeleccionada === 'Harman Target' 
-          ? 'images_resources/KZ Castor/Harman-Mic.jpeg' 
-          : 'images_resources/KZ Castor/Bass-Mic.jpeg';
+          ? 'images_resources/KZ Castor Pro/Harman-Mic.jpeg' 
+          : 'images_resources/KZ Castor Pro/Bass-Mic.jpeg';
 
         const productToAdd = {
           id: 'kz-castor-pro',
