@@ -34,6 +34,7 @@
     <nav class="sidebar-nav">
       <ul>
         <li><a href="../in-ear.html" class="sidebar-link">Audífonos In-Ear <i class="fa-solid fa-arrow-right-long"></i></a></li>
+        <li><a href="../accesorios-computadoras.html" class="sidebar-link">Accesorios para Computadoras <i class="fa-solid fa-arrow-right-long"></i></a></li>
         <li><a href="../index.html#catalogo" class="sidebar-link">Audífonos Diadema <i class="fa-solid fa-arrow-right-long"></i></a></li>
         <li><a href="../index.html#catalogo" class="sidebar-link">Accesorios de Audio <i class="fa-solid fa-arrow-right-long"></i></a></li>
         <li><a href="../index.html#catalogo" class="sidebar-link">Bluetooth & Wireless <i class="fa-solid fa-arrow-right-long"></i></a></li>
@@ -281,6 +282,13 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+    // Elementos del carrusel (definidos arriba para evitar errores de TDZ/ReferenceError)
+    const slides = document.querySelectorAll('.carousel-slide');
+    const indicators = document.querySelectorAll('.carousel-indicadores .indicador');
+    const prevBtn = document.getElementById('carousel-prev');
+    const nextBtn = document.getElementById('carousel-next');
+    let currentSlide = 0;
 
     // Función para abrir el menú
     function openMenu() {
@@ -569,11 +577,6 @@
     // ============================================
     // LÓGICA DEL CARRUSEL DE IMÁGENES
     // ============================================
-    const slides = document.querySelectorAll('.carousel-slide');
-    const indicators = document.querySelectorAll('.carousel-indicadores .indicador');
-    const prevBtn = document.getElementById('carousel-prev');
-    const nextBtn = document.getElementById('carousel-next');
-    let currentSlide = 0;
 
     function showSlide(index) {
       if (index >= slides.length) {

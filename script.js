@@ -271,6 +271,14 @@ window.renderCart = function () {
       } else if (qty >= 6) {
         unitPrice = 670;
       }
+    } else if (item.id === 'attack-shark-x11') {
+      basePrice = 1050;
+      const qty = item.quantity;
+      if (qty >= 3 && qty <= 5) {
+        unitPrice = 990;
+      } else if (qty >= 6) {
+        unitPrice = 950;
+      }
     }
 
     const itemSubtotal = basePrice * item.quantity;
@@ -285,10 +293,12 @@ window.renderCart = function () {
       .map(([key, val]) => `${key}: ${val}`)
       .join(' | ');
 
-    // Corregir la ruta de la imagen en base al contexto del subdirectorio in-ear/
+    // Corregir la ruta de la imagen en base al contexto de subdirectorios
     let imgPath = item.image || '';
-    if (!imgPath.startsWith('http') && window.location.pathname.includes('/in-ear/')) {
-      imgPath = '../' + imgPath;
+    if (!imgPath.startsWith('http')) {
+      if (window.location.pathname.includes('/in-ear/') || window.location.pathname.includes('/computadoras/')) {
+        imgPath = '../' + imgPath;
+      }
     }
 
     // Enlace dinámico según el producto
@@ -297,6 +307,14 @@ window.renderCart = function () {
       detailLink = window.location.pathname.includes('/in-ear/') ? 'kz-edx-pro.html' : 'in-ear/kz-edx-pro.html';
     } else if (item.id === 'kz-castor') {
       detailLink = window.location.pathname.includes('/in-ear/') ? 'kz-castor.html' : 'in-ear/kz-castor.html';
+    } else if (item.id === 'attack-shark-x11') {
+      if (window.location.pathname.includes('/computadoras/')) {
+        detailLink = 'attack-shark-x11.html';
+      } else if (window.location.pathname.includes('/in-ear/')) {
+        detailLink = '../computadoras/attack-shark-x11.html';
+      } else {
+        detailLink = 'computadoras/attack-shark-x11.html';
+      }
     }
 
     html += `
@@ -454,6 +472,14 @@ window.checkoutCart = function () {
         unitPrice = 700;
       } else if (qty >= 6) {
         unitPrice = 670;
+      }
+    } else if (item.id === 'attack-shark-x11') {
+      basePrice = 1050;
+      const qty = item.quantity;
+      if (qty >= 3 && qty <= 5) {
+        unitPrice = 990;
+      } else if (qty >= 6) {
+        unitPrice = 950;
       }
     }
 
