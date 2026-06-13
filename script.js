@@ -55,8 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   // FILTRADO DINÁMICO DE PRODUCTOS DESDE EL MENÚ LATERAL
   // ============================================
-  const productos = document.querySelectorAll('.producto');
-  const noProductsMessage = document.getElementById('no-products-message');
   const seccionTitulo = document.querySelector('.seccion-titulo');
 
   sidebarLinks.forEach(link => {
@@ -65,7 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const filter = link.getAttribute('data-filter');
       if (!filter) return; // Si no tiene filtro (ej: enlaces del footer), no hacemos nada
 
-      // 1. Filtrar los productos visibles
+      // 1. Filtrar los productos visibles (buscados dinámicamente)
+      const productos = document.querySelectorAll('.producto');
       let visibleCount = 0;
       productos.forEach(producto => {
         const categoria = producto.getAttribute('data-category');
@@ -78,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       // 2. Mostrar/ocultar mensaje de categoría vacía
+      const noProductsMessage = document.getElementById('no-products-message');
       if (noProductsMessage) {
         noProductsMessage.style.display = visibleCount === 0 ? 'block' : 'none';
       }
@@ -156,6 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Renderizar estado inicial
   if (typeof window.renderCart === 'function') {
     window.renderCart();
+  }
+
+  // Cargar productos del catálogo dinámico
+  if (typeof window.cargarProductos === 'function') {
+    window.cargarProductos();
   }
 });
 
@@ -509,5 +514,122 @@ window.checkoutCart = function () {
 
   const url = `https://wa.me/50585944758?text=${encodeURIComponent(mensaje)}`;
   window.open(url, '_blank');
+};
+
+
+// ============================================
+// FUNCIONES DE CARGA DINÁMICA DE PRODUCTOS (JSON)
+// ============================================
+
+window.cargarProductos = async function () {
+  const container = document.querySelector('.catalogo');
+  if (!container) return;
+
+  try {
+    // Determinar la ruta relativa correcta de productos.json según la página
+    let jsonPath = 'productos.json';
+    if (window.location.pathname.includes('/in-ear/') || window.location.pathname.includes('/computadoras/')) {
+      jsonPath = '../productos.json';
+    }
+
+    const response = await fetch(jsonPath);
+    if (!response.ok) throw new Error('No se pudo cargar productos.json');
+    const productos = await response.json();
+
+    // Guardar en variable global por si se necesita en otro lado
+    window.productosCatalogData = productos;
+
+    // Determinar la página actual y filtrar la categoría correspondiente
+    const pageName = window.location.pathname.split('/').pop().split('?')[0] || 'index.html';
+    
+    let defaultCategory = 'todos';
+    if (pageName === 'in-ear.html') {
+      defaultCategory = 'in-ear';
+    } else if (pageName === 'accesorios-computadoras.html') {
+      defaultCategory = 'computadoras';
+    }
+
+    window.renderizarCatalogo(productos, defaultCategory);
+  } catch (error) {
+    console.error('Error cargando el catálogo:', error);
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #ef4444;">
+        <i class="fa-solid fa-circle-exclamation" style="font-size: 36px; margin-bottom: 12px;"></i>
+        <p style="font-weight: 500;">Hubo un problema al cargar los productos del catálogo.</p>
+      </div>
+    `;
+  }
+};
+
+window.renderizarCatalogo = function (productos, categoriaFiltro) {
+  const container = document.querySelector('.catalogo');
+  if (!container) return;
+
+  // Filtrar productos
+  const productosFiltrados = productos.filter(p => categoriaFiltro === 'todos' || p.category === categoriaFiltro);
+
+  let html = '';
+  productosFiltrados.forEach(p => {
+    // Determinar origen para el query string '?from=...'
+    const pageName = window.location.pathname.split('/').pop().split('?')[0] || 'index.html';
+    const fromParam = pageName.replace('.html', '');
+
+    // Corregir la ruta de la imagen en base a la ubicación
+    let imgPath = p.image;
+    if (!imgPath.startsWith('http') && (window.location.pathname.includes('/in-ear/') || window.location.pathname.includes('/computadoras/'))) {
+      imgPath = '../' + imgPath;
+    }
+
+    // Corregir la ruta de detalle en base a la ubicación
+    let detailUrl = p.detailUrl;
+    if (detailUrl && (window.location.pathname.includes('/in-ear/') || window.location.pathname.includes('/computadoras/'))) {
+      detailUrl = '../' + detailUrl;
+    }
+
+    // Crear el HTML de la tarjeta
+    html += `
+      <div class="producto" data-category="${p.category}">
+        ${p.detailUrl ? `
+          <a href="${detailUrl}?from=${fromParam}" class="producto-link">
+            <img src="${imgPath}" alt="${p.name}">
+          </a>
+          <div class="producto-info">
+            <h2><a href="${detailUrl}?from=${fromParam}" class="producto-titulo-link">${p.name}</a></h2>
+            <p>${p.description}</p>
+            <div class="precio">${p.priceDisplay}</div>
+            <a class="btn-details" href="${detailUrl}?from=${fromParam}">
+              <i class="fa-solid fa-circle-info"></i> Ver Detalles
+            </a>
+          </div>
+        ` : `
+          <img src="${imgPath}" alt="${p.name}">
+          <div class="producto-info">
+            <h2>${p.name}</h2>
+            <p>${p.description}</p>
+            <div class="precio">${p.priceDisplay}</div>
+            <button class="btn-add-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" data-image="${p.image}">
+              <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+            </button>
+          </div>
+        `}
+      </div>
+    `;
+  });
+
+  // Re-inyectar no-products-message
+  html += `
+    <div class="no-products-message" id="no-products-message" style="display: none; grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748b;">
+      <i class="fa-regular fa-folder-open" style="font-size: 36px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
+      <p style="font-weight: 500;">Próximamente más productos en esta categoría</p>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  // Actualizar la visibilidad del no-products-message
+  const noProductsMessage = document.getElementById('no-products-message');
+  if (noProductsMessage) {
+    noProductsMessage.style.display = productosFiltrados.length === 0 ? 'block' : 'none';
+  }
 };
 

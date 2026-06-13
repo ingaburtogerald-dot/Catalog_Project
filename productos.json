@@ -1,0 +1,50 @@
+[
+  {
+    "id": "kz-edx-pro-x",
+    "name": "KZ EDX Pro X",
+    "category": "in-ear",
+    "image": "images_resources/KZ%20EDX%20Pro%20X/Black-Mic.jpeg",
+    "description": "Audífonos in-ear con doble driver dinámico, graves potentes y excelente definición para monitoreo.",
+    "priceDisplay": "Desde C$430.00",
+    "price": 430,
+    "detailUrl": "in-ear/kz-edx-pro.html"
+  },
+  {
+    "id": "kz-castor",
+    "name": "KZ Castor",
+    "category": "in-ear",
+    "image": "images_resources/KZ Castor/Harman-Mic.jpeg",
+    "description": "Audífonos in-ear de alto rendimiento con driver dinámico dual y switches físicos para ecualización de graves.",
+    "priceDisplay": "Desde C$660.00",
+    "price": 660,
+    "detailUrl": "in-ear/kz-castor.html"
+  },
+  {
+    "id": "kz-castor-pro",
+    "name": "KZ Castor Pro",
+    "category": "in-ear",
+    "image": "https://placehold.co/400x300?text=KZ+Castor+Pro",
+    "description": "Versión mejorada con mayor claridad en frecuencias medias y agudas y switches de ajuste acústico profesional.",
+    "priceDisplay": "C$550.00",
+    "price": 550
+  },
+  {
+    "id": "kz-az09",
+    "name": "KZ AZ09",
+    "category": "bluetooth",
+    "image": "https://placehold.co/400x300?text=KZ+AZ09",
+    "description": "Módulos Bluetooth 5.2 de alta definición para convertir tus audífonos in-ear cableados en inalámbricos (TWS).",
+    "priceDisplay": "C$750.00",
+    "price": 750
+  },
+  {
+    "id": "attack-shark-x11",
+    "name": "Attack Shark X11",
+    "category": "computadoras",
+    "image": "images_resources/Attack%20Shark%20X11/Black.png",
+    "description": "Mouse gamer inalámbrico de 63g con sensor PixArt PAW3311, hasta 22k DPI y base de carga magnética RGB.",
+    "priceDisplay": "Desde C$1,050.00",
+    "price": 1050,
+    "detailUrl": "computadoras/attack-shark-x11.html"
+  }
+]
