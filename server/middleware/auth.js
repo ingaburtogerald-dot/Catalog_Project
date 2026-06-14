@@ -36,6 +36,7 @@ module.exports = async function requireAdmin(req, res, next) {
     req.user = { uid: decoded.uid, email: decoded.email, name: decoded.name || '' };
     next();
   } catch (err) {
+    console.error('❌ Error verifying Firebase ID token:', err);
     return res.status(401).json({ error: 'Sesión inválida o expirada. Iniciá sesión de nuevo.' });
   }
 };
