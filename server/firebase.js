@@ -1,12 +1,13 @@
 // Inicialización de Firebase Admin SDK (solo servidor).
 // Lee las credenciales (service account) desde el archivo indicado en SERVICE_ACCOUNT_PATH.
 const admin = require('firebase-admin');
+const { getApps } = require('firebase-admin/app');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
 function init() {
-  if (admin.apps.length) return admin;
+  if (getApps().length) return admin;
 
   const keyPath = path.resolve(process.cwd(), config.serviceAccountPath);
 
