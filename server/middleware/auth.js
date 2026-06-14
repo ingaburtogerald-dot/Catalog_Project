@@ -24,7 +24,7 @@ module.exports = async function requireAdmin(req, res, next) {
   }
 
   try {
-    const decoded = await getAuth(admin).verifyIdToken(token);
+    const decoded = await getAuth().verifyIdToken(token);
 
     if (!decoded.email || !decoded.email_verified) {
       return res.status(403).json({ error: 'El correo de la cuenta no está verificado.' });
