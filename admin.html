@@ -803,16 +803,106 @@
     .popover-btn-apply:hover {
       background: var(--accent-soft);
     }
+
+    /* Pantalla de login e inputs */
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .login-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .login-form label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-soft);
+    }
+    .login-form input {
+      padding: 10px 12px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font: inherit;
+      color: var(--input-color);
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .login-form input:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .login-divider hr {
+      flex: 1;
+      border: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Spinner de Carga */
+    .spinner {
+      border: 4px solid var(--border-strong);
+      border-left-color: var(--accent);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
+  <!-- ===== LOADING ===== -->
+  <div class="login-screen" id="loading-view" style="display: grid; place-items: center; min-height: 80vh;">
+    <div style="text-align: center;">
+      <div class="spinner"></div>
+      <p style="color: var(--text-soft); font-size: 16px; font-weight: 500;">Cargando sesión...</p>
+    </div>
+  </div>
+
   <!-- ===== LOGIN ===== -->
-  <div class="login-screen" id="login-view">
+  <div class="login-screen hidden" id="login-view">
     <div class="login-card">
       <img src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto var(--sp-4); border: 3px solid var(--accent); box-shadow: 0 0 20px rgba(124, 131, 255, 0.4);" />
       <h1>Panel de Gyro Store</h1>
       <p>Acceso solo para administradores autorizados.</p>
-      <button class="btn-google" id="btn-google">
+      
+      <form id="email-login-form" class="login-form">
+        <div class="login-form-group">
+          <label for="login-email">Correo Electrónico</label>
+          <input type="email" id="login-email" required placeholder="admin@gyrostore.com" />
+        </div>
+        <div class="login-form-group">
+          <label for="login-password">Contraseña</label>
+          <input type="password" id="login-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn-solid" style="margin-top: 6px; padding: 12px; font-size: 14px; border: none; cursor: pointer; border-radius: var(--radius-pill); width: 100%; display: flex; align-items: center; justify-content: center; font-family: inherit;">
+          Iniciar sesión
+        </button>
+      </form>
+
+      <div class="login-divider">
+        <hr />
+        <span>o continuar con</span>
+        <hr />
+      </div>
+
+      <button class="btn-google" id="btn-google" style="width: 100%; justify-content: center; box-sizing: border-box;">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
         Iniciar sesión con Google
       </button>

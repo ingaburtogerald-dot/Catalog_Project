@@ -12,6 +12,12 @@ module.exports = {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
 
+  // Lista blanca de vendedores (correos de Google/Firebase autorizados)
+  sellerEmails: (process.env.SELLER_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+
   // Config pública de la Web App de Firebase (para el login con Google en el admin)
   firebaseWeb: {
     apiKey: process.env.FIREBASE_API_KEY || '',

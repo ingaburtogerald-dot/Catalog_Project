@@ -2,7 +2,7 @@
 const router = require('express').Router();
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
-const requireAdmin = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler, sanitizeProduct } = require('../utils');
 
 const COL = config.collections.products;

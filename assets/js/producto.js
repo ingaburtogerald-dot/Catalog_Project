@@ -190,8 +190,25 @@ function wireDetail(p) {
 
 /* ---------- sidebar ---------- */
 function renderSidebar() {
-  $('#sidebar-menu').innerHTML = [{ id: 'all', name: 'Todo el catálogo', icon: '🛍️' }, ...CATEGORIES]
+  const isLoggedIn = localStorage.getItem('gyro_admin_logged_in') === 'true';
+  const isSeller = localStorage.getItem('gyro_admin_dev_mode') === 'seller';
+  const currentUrl = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+  const basePath = '';
+
+  const menuHTML = [{ id: 'all', name: 'Todo el catálogo', icon: '🛍️' }, ...CATEGORIES]
     .map((c) => `<li><a href="index.html?cat=${esc(c.id)}">${c.icon} ${esc(c.name)}</a></li>`).join('');
+
+  let adminMenu = '';
+  if (isLoggedIn) {
+    const portalPage = isSeller ? 'vendedor.html' : 'admin.html';
+    const portalName = isSeller ? 'Portal Vendedor' : 'Panel Admin';
+    adminMenu = `<li><a href="${basePath}${portalPage}"><i class="fa-solid fa-lock-open" style="margin-right: 8px;"></i> ${portalName}</a></li>
+      <li><a href="${basePath}${portalPage}?logout=true&from=${currentUrl}" style="color: var(--danger, #ef4444) !important;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Cerrar Sesión</a></li>`;
+  } else {
+    adminMenu = `<li><a href="${basePath}admin.html?from=${currentUrl}"><i class="fa-solid fa-lock" style="margin-right: 8px;"></i> Iniciar Sesión</a></li>`;
+  }
+
+  $('#sidebar-menu').innerHTML = menuHTML + adminMenu;
 }
 const openMenu = () => { $('#sidebar-overlay').hidden = false; $('#sidebar').classList.add('open'); $('#btn-menu').setAttribute('aria-expanded', 'true'); };
 const closeMenu = () => { $('#sidebar-overlay').hidden = true; $('#sidebar').classList.remove('open'); $('#btn-menu').setAttribute('aria-expanded', 'false'); };

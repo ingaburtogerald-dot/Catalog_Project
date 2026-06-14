@@ -1,10 +1,10 @@
-// Rutas de pedidos: crear pedido (público) + listar/actualizar (admin).
+// Rutas de pedidos: crear pedido (público) + listar/actualizar (admin/seller).
 // IMPORTANTE: los totales se recalculan SIEMPRE en el servidor con los precios
 // reales de Firestore. Nunca se confía en los precios que manda el cliente.
 const router = require('express').Router();
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
-const requireAdmin = require('../middleware/auth');
+const { requireSeller } = require('../middleware/auth');
 const { asyncHandler } = require('../utils');
 
 const PRODUCTS = config.collections.products;
@@ -113,14 +113,14 @@ router.post('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// GET /api/orders (admin)
-router.get('/', requireAdmin, asyncHandler(async (req, res) => {
+// GET /api/orders (admin/seller)
+router.get('/', requireSeller, asyncHandler(async (req, res) => {
   const snap = await db.collection(ORDERS).orderBy('createdAt', 'desc').limit(100).get();
   res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
 }));
 
-// PATCH /api/orders/:id  { status } (admin) — pending | paid | delivered | cancelled
-router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
+// PATCH /api/orders/:id  { status } (admin/seller) — pending | paid | delivered | cancelled
+router.patch('/:id', requireSeller, asyncHandler(async (req, res) => {
   const valid = ['pending', 'paid', 'delivered', 'cancelled'];
   const { status } = req.body || {};
   if (!valid.includes(status)) {

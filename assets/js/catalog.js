@@ -54,10 +54,27 @@ function renderCategories() {
     <button class="chip ${c.id === activeCategory ? 'active' : ''}" data-cat="${esc(c.id)}">
       ${c.icon} ${esc(c.name)}
     </button>`).join('');
-  $('#sidebar-menu').innerHTML = CATEGORIES.map((c) => `
+  const menuHTML = CATEGORIES.map((c) => `
     <li><a href="#catalogo" class="${c.id === activeCategory ? 'active' : ''}" data-cat="${esc(c.id)}">
       ${c.icon} ${esc(c.name)}
     </a></li>`).join('');
+
+  const isLoggedIn = localStorage.getItem('gyro_admin_logged_in') === 'true';
+  const isSeller = localStorage.getItem('gyro_admin_dev_mode') === 'seller';
+  const currentUrl = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+  const basePath = '';
+
+  let adminMenu = '';
+  if (isLoggedIn) {
+    const portalPage = isSeller ? 'vendedor.html' : 'admin.html';
+    const portalName = isSeller ? 'Portal Vendedor' : 'Panel Admin';
+    adminMenu = `<li><a href="${basePath}${portalPage}"><i class="fa-solid fa-lock-open" style="margin-right: 8px;"></i> ${portalName}</a></li>
+      <li><a href="${basePath}${portalPage}?logout=true&from=${currentUrl}" style="color: var(--danger, #ef4444) !important;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Cerrar Sesión</a></li>`;
+  } else {
+    adminMenu = `<li><a href="${basePath}admin.html?from=${currentUrl}"><i class="fa-solid fa-lock" style="margin-right: 8px;"></i> Iniciar Sesión</a></li>`;
+  }
+
+  $('#sidebar-menu').innerHTML = menuHTML + adminMenu;
 }
 
 function renderCatalog() {

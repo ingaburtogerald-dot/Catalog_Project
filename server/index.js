@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const os = require('os');
 const config = require('./config');
 
 require('./firebase'); // inicializa Firebase Admin
@@ -40,9 +41,30 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor.' });
 });
 
-app.listen(config.port, () => {
+function getLocalIpAddresses() {
+  const ips = [];
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        ips.push(iface.address);
+      }
+    }
+  }
+  return ips;
+}
+
+app.listen(config.port, '0.0.0.0', () => {
+  const localIps = getLocalIpAddresses();
   console.log(`\n🚀 Gyro Store en línea`);
-  console.log(`   Catálogo: http://localhost:${config.port}/`);
-  console.log(`   Admin:    http://localhost:${config.port}/admin.html`);
-  console.log(`   API:      http://localhost:${config.port}/api/products\n`);
+  console.log(`   Catálogo (Local):     http://localhost:${config.port}/`);
+  if (localIps.length > 0) {
+    localIps.forEach(ip => {
+      console.log(`   Catálogo (Red Local):  http://${ip}:${config.port}/`);
+      console.log(`   Admin (Red Local):     http://${ip}:${config.port}/admin.html`);
+    });
+  } else {
+    console.log(`   Admin (Local):        http://localhost:${config.port}/admin.html`);
+  }
+  console.log(`   API:                  http://localhost:${config.port}/api/products\n`);
 });

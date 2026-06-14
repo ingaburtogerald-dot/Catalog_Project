@@ -81,11 +81,14 @@ window.GyroCart = (function () {
     } else {
       body.innerHTML = cart.map((it) => {
         const k = keyOf(it.id, it.variant);
+        const detailLink = `producto.html?id=${encodeURIComponent(it.id)}`;
         return `
         <div class="cart-item">
-          <img src="${esc(window.resolveImageUrl(it.img))}" alt="${esc(it.name)}">
+          <a href="${detailLink}">
+            <img src="${esc(window.resolveImageUrl(it.img))}" alt="${esc(it.name)}">
+          </a>
           <div>
-            <p class="cart-item-name">${esc(it.name)}</p>
+            <p class="cart-item-name"><a href="${detailLink}">${esc(it.name)}</a></p>
             ${it.variant ? `<p class="cart-item-variant">${esc(it.variant)}</p>` : ''}
             <p class="cart-item-price">${money(it.price)}</p>
             <div class="qty">

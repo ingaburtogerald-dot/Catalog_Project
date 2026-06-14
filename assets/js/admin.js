@@ -5,6 +5,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  signInWithEmailAndPassword,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 const API = '/api';
@@ -90,7 +91,8 @@ function formatFriendlyDate(dateInput) {
 async function api(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('dev') === 'true') {
+  const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
+  if (isDevMode) {
     headers.Authorization = 'Bearer dev-token';
   } else if (auth && auth.currentUser) {
     headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
@@ -1175,6 +1177,9 @@ function updateSelectStatusColor(selectEl) {
    Vistas (login / panel)
    ============================================================ */
 function showLogin(errorMsg) {
+  localStorage.removeItem('gyro_admin_logged_in');
+  const loadingView = $('#loading-view');
+  if (loadingView) loadingView.classList.add('hidden');
   $('#login-view').classList.remove('hidden');
   $('#panel-view').classList.add('hidden');
   const el = $('#login-error');
@@ -1184,10 +1189,32 @@ function showLogin(errorMsg) {
 
 async function showPanel(user) {
   currentUserInfo = user;
+  localStorage.setItem('gyro_admin_logged_in', 'true');
+
+  if (user.role === 'seller') {
+    localStorage.setItem('gyro_admin_dev_mode', 'seller');
+    window.location.href = 'vendedor.html' + window.location.search;
+    return;
+  }
+
+  // Si somos admin, limpiamos la bandera de modo vendedor
+  if (localStorage.getItem('gyro_admin_dev_mode') === 'seller') {
+    localStorage.removeItem('gyro_admin_dev_mode');
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromPage = urlParams.get('from');
+  if (fromPage) {
+    window.location.href = fromPage;
+    return;
+  }
+
   $('#login-view').classList.add('hidden');
+  const loadingView = $('#loading-view');
+  if (loadingView) loadingView.classList.add('hidden');
   $('#panel-view').classList.remove('hidden');
   $('#user-email').textContent = user.email;
-  if (user.photoURL) $('#user-photo').src = user.photoURL;
+  $('#user-photo').src = user.photoURL || 'assets/img/Gyro_Store_logo.jpeg';
 
   CONFIG = await api('/config');
   fillCategorySelect();
@@ -1262,11 +1289,14 @@ async function init() {
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
       closeSettingsModal();
+      localStorage.removeItem('gyro_admin_logged_in');
+      localStorage.removeItem('gyro_admin_dev_mode');
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('dev') === 'true') {
+      const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
+      if (isDevMode) {
         window.location.href = window.location.pathname;
       } else if (auth) {
-        signOut(auth);
+        signOut(auth).catch(() => {});
       } else {
         showLogin();
       }
@@ -1423,25 +1453,74 @@ async function init() {
   });
 
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('dev') === 'true') {
+  const isDevMode = urlParams.get('dev') === 'true' || urlParams.get('dev') === 'seller' || localStorage.getItem('gyro_admin_dev_mode') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'seller';
+
+  if (urlParams.get('logout') === 'true') {
+    localStorage.removeItem('gyro_admin_logged_in');
+    localStorage.removeItem('gyro_admin_dev_mode');
+    if (isDevMode || urlParams.get('logout') === 'true') {
+      const fromPage = urlParams.get('from') || 'index.html';
+      window.location.href = fromPage;
+      return;
+    }
+  }
+
+  if (isDevMode) {
     console.log('Dev mode active. Bypassing Firebase Auth.');
+    const isSeller = localStorage.getItem('gyro_admin_dev_mode') === 'seller' || urlParams.get('dev') === 'seller';
+    if (isSeller) {
+      window.location.href = 'vendedor.html' + window.location.search;
+      return;
+    }
     await showPanel({
       email: 'dev-admin@gyrostore.com',
       photoURL: '../assets/img/Gyro_Store_logo.jpeg',
-      displayName: 'Gerald Inga (Dev)'
+      displayName: 'Gerald Inga (Dev)',
+      role: 'admin'
     });
     return;
   }
 
-  // Si estamos en entorno local, mostramos el botón de inicio de sesión de desarrollador
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  // Si estamos en entorno local o red local, mostramos el botón de inicio de sesión de desarrollador
+  const isLocal = window.location.hostname === 'localhost' || 
+                  window.location.hostname === '127.0.0.1' ||
+                  /^192\.168\.\d+\.\d+$/.test(window.location.hostname) ||
+                  /^10\.\d+\.\d+\.\d+$/.test(window.location.hostname) ||
+                  /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(window.location.hostname) ||
+                  /^169\.254\.\d+\.\d+$/.test(window.location.hostname);
+                  
   if (isLocal) {
     const btnDev = $('#btn-dev-login');
     if (btnDev) {
       btnDev.classList.remove('hidden');
       btnDev.addEventListener('click', () => {
-        window.location.search = '?dev=true';
+        const fromParam = urlParams.get('from');
+        localStorage.setItem('gyro_admin_dev_mode', 'true');
+        window.location.search = `?dev=true${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
       });
+
+      // Insertar información de las credenciales locales de prueba
+      let devInfo = document.getElementById('dev-credentials-info');
+      if (!devInfo) {
+        devInfo = document.createElement('div');
+        devInfo.id = 'dev-credentials-info';
+        devInfo.style.marginTop = '15px';
+        devInfo.style.padding = '12px';
+        devInfo.style.background = 'rgba(124, 131, 255, 0.08)';
+        devInfo.style.border = '1px dashed rgba(124, 131, 255, 0.3)';
+        devInfo.style.borderRadius = '8px';
+        devInfo.style.fontSize = '12.5px';
+        devInfo.style.color = 'var(--text-soft)';
+        devInfo.style.textAlign = 'left';
+        devInfo.innerHTML = `
+          <p style="margin: 0 0 6px 0; font-weight: bold; color: var(--accent-soft); display: flex; align-items: center; gap: 4px;">
+            🔑 Credenciales Locales de Prueba:
+          </p>
+          <div style="margin: 4px 0;"><strong>Admin:</strong> dev-admin@gyrostore.com <br> <span style="color:var(--muted);">Contraseña:</span> /admin1</div>
+          <div style="margin: 4px 0; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;"><strong>Vendedor:</strong> dev-seller@gyrostore.com <br> <span style="color:var(--muted);">Contraseña:</span> /seller1</div>
+        `;
+        btnDev.after(devInfo);
+      }
     }
   }
 
@@ -1460,6 +1539,77 @@ async function init() {
   const app = initializeApp(fbConfig);
   auth = getAuth(app);
 
+  if (urlParams.get('logout') === 'true') {
+    signOut(auth).then(() => {
+      window.location.href = urlParams.get('from') || 'index.html';
+    }).catch(() => {
+      window.location.href = urlParams.get('from') || 'index.html';
+    });
+    return;
+  }
+
+  const emailLoginForm = $('#email-login-form');
+  if (emailLoginForm) {
+    emailLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = $('#login-email').value.trim();
+      const password = $('#login-password').value;
+      const errorEl = $('#login-error');
+      if (errorEl) errorEl.classList.add('hidden');
+
+      // Interceptar credenciales de desarrollador local
+      if (email === 'dev-admin@gyrostore.com' && password === '/admin1') {
+        console.log('Local Dev credentials used. Bypassing Firebase.');
+        localStorage.setItem('gyro_admin_dev_mode', 'true');
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromParam = urlParams.get('from');
+        window.location.href = `admin.html?dev=true${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
+        return;
+      }
+
+      // Interceptar credenciales de vendedor local
+      if (email === 'dev-seller@gyrostore.com' && password === '/seller1') {
+        console.log('Local Seller credentials used. Bypassing Firebase.');
+        localStorage.setItem('gyro_admin_dev_mode', 'seller');
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromParam = urlParams.get('from');
+        window.location.href = `vendedor.html?dev=seller${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
+        return;
+      }
+
+      const submitBtn = emailLoginForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn ? submitBtn.textContent : 'Iniciar sesión';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Iniciando sesión...';
+      }
+
+      // Mostrar spinner de carga
+      const loadingView = $('#loading-view');
+      const loginView = $('#login-view');
+      if (loadingView) loadingView.classList.remove('hidden');
+      if (loginView) loginView.classList.add('hidden');
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        if (loadingView) loadingView.classList.add('hidden');
+        if (loginView) loginView.classList.remove('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        }
+        let friendlyMessage = err.message;
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+          friendlyMessage = 'Correo o contraseña incorrectos.';
+        } else if (err.code === 'auth/invalid-email') {
+          friendlyMessage = 'Formato de correo electrónico no válido.';
+        }
+        showLogin(friendlyMessage);
+      }
+    });
+  }
+
   $('#btn-google').addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
@@ -1476,13 +1626,14 @@ async function init() {
       await showPanel({
         email: me.email,
         photoURL: user.photoURL,
-        displayName: user.displayName || me.email.split('@')[0]
+        displayName: user.displayName || me.email.split('@')[0],
+        role: me.role
       });
     } catch (err) {
-      // Cuenta de Google válida pero NO autorizada como admin
+      // Cuenta válida pero NO autorizada como admin
       await signOut(auth);
       showLogin(err.status === 403
-        ? 'Esta cuenta de Google no tiene permisos de administrador.'
+        ? 'Esta cuenta no tiene permisos autorizados.'
         : `Error de sesión: ${err.message}`);
     }
   });
