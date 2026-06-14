@@ -10,7 +10,16 @@ function init() {
 
   const keyPath = path.resolve(process.cwd(), config.serviceAccountPath);
 
-  if (fs.existsSync(keyPath)) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+      console.log(`🔑 Firebase Admin inicializado desde variable de entorno: ${serviceAccount.project_id}`);
+    } catch (e) {
+      console.error('❌ Error al parsear FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
+      process.exit(1);
+    }
+  } else if (fs.existsSync(keyPath)) {
     const serviceAccount = require(keyPath);
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     console.log(`🔑 Firebase Admin inicializado para el proyecto: ${serviceAccount.project_id}`);
