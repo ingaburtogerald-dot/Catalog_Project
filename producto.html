@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Producto · Gyro Store</title>
+  <meta name="description" content="Detalle del producto en Gyro Store: variantes, especificaciones técnicas y precio. Pedidos por WhatsApp." />
+
+  <!-- ===== Fuentes ===== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- ===== Estilos e Iconos ===== -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/jpeg" href="assets/img/Gyro_icon-32.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body class="store-theme">
+  <!-- Salto de accesibilidad -->
+  <a class="skip-link" href="#product-root">Saltar al contenido</a>
+
+  <!-- ============ SIDEBAR (drawer izquierdo) ============ -->
+  <div class="overlay" id="sidebar-overlay" hidden></div>
+  
+  <aside class="sidebar" id="sidebar" aria-label="Menú de categorías" aria-hidden="true">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <img class="logo-compacto" src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store">
+        <span class="sidebar-title">GYRO STORE</span>
+      </div>
+      <button class="icon-btn" id="btn-close-menu" aria-label="Cerrar menú">✕</button>
+    </div>
+    
+    <nav class="sidebar-nav" aria-label="Categorías de productos">
+      <p class="sidebar-section-label">Categorías</p>
+      <ul id="sidebar-menu"><!-- generado dinámicamente por JS --></ul>
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="sidebar-social" aria-label="Redes sociales">
+        <a class="social-link ig" href="https://www.instagram.com/store_gyro/" target="_blank" aria-label="Instagram" rel="noopener">IG</a>
+        <a class="social-link fb" href="https://www.facebook.com/profile.php?id=61589182888082" target="_blank" aria-label="Facebook" rel="noopener">f</a>
+        <a class="social-link tk" href="https://www.tiktok.com/@gyro_store" target="_blank" aria-label="TikTok" rel="noopener">♪</a>
+      </div>
+      <a class="btn btn--maps sidebar-maps" href="https://maps.app.goo.gl/r5pFyiZN5zi4g7Q1A" target="_blank" rel="noopener">
+        <span aria-hidden="true">📍</span> Cómo llegar
+      </a>
+      <p class="sidebar-location">📍 Managua, conchita palacios 2c al lago, 1c arriba</p>
+      <p class="muted">Venta al detalle y por mayor</p>
+    </div>
+  </aside>
+
+  <!-- ============ HEADER COMPACTO ============ -->
+  <header class="header-compacto">
+    <div class="header-compacto-contenido">
+      <button class="btn-menu" id="btn-menu" aria-label="Abrir menú lateral" aria-controls="sidebar" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <a href="index.html" class="brand-link">
+        <img class="logo-compacto" src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store">
+        <span class="title-compacto">GYRO STORE</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ============ DETALLE DE PRODUCTO ============ -->
+  <main id="product-root" class="container">
+    <nav class="breadcrumb" id="breadcrumb" aria-label="Migas de pan"></nav>
+    
+    <div id="product-detail">
+      <p class="empty-state">Cargando producto…</p>
+    </div>
+    
+    <section id="product-info"></section>
+    <section id="related"></section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+    <p>© <span id="year">2026</span> Gyro Store · Hecho por <strong>Ing. Gerald Aburto</strong></p>
+    <p>Contacto: <a href="mailto:ingaburtogerald@gmail.com">ingaburtogerald@gmail.com</a></p>
+  </footer>
+
+  <!-- ============ BOTÓN CARRITO FLOTANTE ============ -->
+  <button class="cart-fab" id="cart-fab" aria-label="Ver carrito">
+    <i class="fa-solid fa-cart-shopping"></i>
+    <span class="cart-badge" id="cart-badge" aria-live="polite">0</span>
+  </button>
+
+  <!-- ============ CARRITO (drawer derecho) ============ -->
+  <div class="overlay" id="cart-overlay" hidden></div>
+  
+  <aside class="cart-drawer" id="cart-drawer" aria-label="Carrito de compras" aria-hidden="true">
+    <div class="cart-header">
+      <h2><i class="fa-solid fa-cart-shopping"></i> Tu carrito</h2>
+      <button class="icon-btn" id="btn-close-cart" aria-label="Cerrar carrito">✕</button>
+    </div>
+    
+    <div class="cart-body" id="cart-body"><!-- items por JS --></div>
+    
+    <div class="cart-footer">
+      <div class="cart-row" id="discount-row" hidden>
+        <span>Descuento por volumen</span>
+        <span id="cart-discount">- C$0.00</span>
+      </div>
+      <div class="cart-row cart-total">
+        <span>Total</span>
+        <span id="cart-total">C$0.00</span>
+      </div>
+      <button class="btn btn--checkout" id="btn-checkout">
+        <i class="fa-brands fa-whatsapp"></i> Finalizar pedido por WhatsApp
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MODAL: DATOS DEL CLIENTE ============ -->
+  <div class="overlay" id="checkout-overlay" hidden></div>
+  
+  <div class="checkout-modal" id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-title" hidden>
+    <div class="checkout-head">
+      <h2 id="checkout-title">Tus datos</h2>
+      <button class="icon-btn" id="btn-close-checkout" aria-label="Cerrar">✕</button>
+    </div>
+    
+    <form class="checkout-form" id="checkout-form" novalidate>
+      <label>Nombre completo *
+        <input id="co-name" required autocomplete="name" placeholder="Ej. Juan Pérez" />
+      </label>
+      <label>Teléfono / WhatsApp *
+        <input id="co-phone" required inputmode="tel" autocomplete="tel" placeholder="Ej. 8888 8888" />
+      </label>
+      <fieldset class="co-delivery">
+        <legend>¿Cómo querés recibirlo?</legend>
+        <label class="radio"><input type="radio" name="delivery" value="pickup" checked /> 🏬 Retiro en tienda</label>
+        <label class="radio"><input type="radio" name="delivery" value="shipping" /> 🚚 Envío a domicilio</label>
+      </fieldset>
+      <label id="co-address-wrap" hidden>Dirección de entrega *
+        <textarea id="co-address" rows="2" placeholder="Barrio, calle, referencias…"></textarea>
+      </label>
+      <label>Nota para la tienda (opcional)
+        <input id="co-note" placeholder="Color, modelo, horario…" />
+      </label>
+      <div class="checkout-summary" id="co-summary"></div>
+      <button type="submit" class="btn btn--checkout" id="btn-confirm-order">
+        <i class="fa-brands fa-whatsapp"></i> Confirmar y enviar por WhatsApp
+      </button>
+    </form>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Scripts -->
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/producto.js"></script>
+</body>
+</html>

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin · Gyro Store</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+    
+    :root {
+      --bg-900: #0f172a;
+      --bg-800: #1e293b;
+      --bg-700: #334155;
+      --surface: #151b2c;
+      --page: #0b0f19;
+      --text: #e2e8f0;
+      --text-soft: #aab2cf;
+      --muted: #717a9c;
+      --accent: #7c83ff;
+      --accent-soft: #9aa0ff;
+
+      /* Additional variables to support light mode */
+      --border: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --input-bg: #1e263d;
+      --input-border: rgba(255, 255, 255, 0.12);
+      --input-color: #fff;
+      --btn-ghost-bg: #1e263d;
+      --btn-ghost-hover: #2b3654;
+      --btn-ghost-border: rgba(255, 255, 255, 0.08);
+      --tr-hover: rgba(255, 255, 255, 0.02);
+      --tr-border: rgba(255, 255, 255, 0.08);
+      --heading-color: #fff;
+      --modal-bg: #111827;
+      --modal-border: rgba(255, 255, 255, 0.08);
+      --modal-comments-bg: rgba(0, 0, 0, 0.15);
+      --modal-comments-border: rgba(255, 255, 255, 0.06);
+      --comment-bubble-bg: #1e293b;
+      --comment-bubble-border: rgba(255, 255, 255, 0.05);
+      --comment-dropdown-bg: #151b2c;
+      --comment-dropdown-border: rgba(255, 255, 255, 0.08);
+      --comment-dropdown-hover: rgba(255, 255, 255, 0.05);
+      --bulk-bar-bg: #151b2c;
+      --scrollbar-thumb: #1e293b;
+      --scrollbar-track: #ffffff;
+      --modal-content-input-bg: #1e293b;
+      --modal-content-input-border: rgba(255, 255, 255, 0.1);
+    }
+
+    body[data-theme="light"] {
+      --bg-900: #cbd5e1;
+      --bg-800: #e2e8f0;
+      --bg-700: #94a3b8;
+      --surface: #ffffff;
+      --page: #f8fafc;
+      --text: #0f172a;
+      --text-soft: #334155;
+      --muted: #64748b;
+      --accent: #6366f1;
+      --accent-soft: #818cf8;
+
+      --border: rgba(15, 23, 42, 0.08);
+      --border-strong: rgba(15, 23, 42, 0.15);
+      --input-bg: #f1f5f9;
+      --input-border: rgba(15, 23, 42, 0.15);
+      --input-color: #0f172a;
+      --btn-ghost-bg: #f1f5f9;
+      --btn-ghost-hover: #e2e8f0;
+      --btn-ghost-border: rgba(15, 23, 42, 0.1);
+      --tr-hover: rgba(0, 0, 0, 0.02);
+      --tr-border: rgba(15, 23, 42, 0.08);
+      --heading-color: #0f172a;
+      --modal-bg: #ffffff;
+      --modal-border: rgba(15, 23, 42, 0.1);
+      --modal-comments-bg: #f8fafc;
+      --modal-comments-border: rgba(15, 23, 42, 0.08);
+      --comment-bubble-bg: #f1f5f9;
+      --comment-bubble-border: rgba(15, 23, 42, 0.08);
+      --comment-dropdown-bg: #ffffff;
+      --comment-dropdown-border: rgba(15, 23, 42, 0.1);
+      --comment-dropdown-hover: rgba(0, 0, 0, 0.05);
+      --bulk-bar-bg: #f1f5f9;
+      --scrollbar-thumb: #cbd5e1;
+      --scrollbar-track: #f8fafc;
+      --modal-content-input-bg: #f1f5f9;
+      --modal-content-input-border: rgba(15, 23, 42, 0.1);
+    }
+
+    body {
+      background: var(--page);
+      color: var(--text);
+      font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    
+    .admin-wrap { max-width: 95%; margin: 0 auto; padding: var(--sp-6) var(--sp-5); }
+    .admin-head { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); }
+    .admin-head h1 { font-size: 24px; color: var(--heading-color); }
+    .user-box { display: flex; gap: var(--sp-3); align-items: center; font-size: 14px; }
+    .user-box img { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--accent); }
+    
+    .panel {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--sp-5);
+      margin-bottom: var(--sp-5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+    .panel h2 { font-size: 18px; margin-bottom: var(--sp-4); color: var(--heading-color); }
+    
+    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); }
+    .grid-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--text-soft); }
+    
+    .grid-form input, .grid-form select, .grid-form textarea {
+      padding: 9px 12px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      border-radius: var(--radius-sm);
+      font: inherit;
+      color: var(--input-color);
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .grid-form input:focus, .grid-form select:focus, .grid-form textarea:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+    .grid-form textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
+    
+    .form-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+    
+    .btn-solid {
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      box-shadow: 0 4px 12px rgba(124, 131, 255, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-solid:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(124, 131, 255, 0.35);
+    }
+    
+    .btn-ghost {
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      color: var(--text);
+      background: var(--btn-ghost-bg);
+      border: 1.5px solid var(--btn-ghost-border);
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover {
+      background: var(--btn-ghost-hover);
+    }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--tr-border); vertical-align: middle; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; }
+    tr:hover { background: var(--tr-hover); }
+    
+    .row-actions button { font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 8px; }
+    .edit-btn { color: var(--accent-soft); background: rgba(124, 131, 255, 0.15); }
+    .del-btn { color: var(--danger); background: rgba(239, 68, 68, 0.15); margin-left: 6px; }
+    
+    .status-pill { display: inline-block; white-space: nowrap; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .status-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-paid { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-delivered { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    
+    .muted-note { color: var(--muted); font-size: 13px; }
+    .tabs { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+    
+    .tab {
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text-soft);
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--heading-color); border-color: var(--border-strong); }
+    .tab.active { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(124, 131, 255, 0.25); }
+    
+    .hidden { display: none !important; }
+
+    /* Pantalla de login */
+    .login-screen { min-height: 80vh; display: grid; place-items: center; }
+    .login-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-7);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      max-width: 420px;
+    }
+    .login-card h1 { font-size: 22px; margin-bottom: 6px; color: var(--heading-color); }
+    .login-card p { color: var(--text-soft); margin-bottom: var(--sp-5); font-size: 14px; }
+    
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 22px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      background: var(--input-bg);
+      color: var(--input-color);
+      border: 1.5px solid var(--input-border);
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s, background .2s;
+    }
+    .btn-google:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); background: var(--btn-ghost-hover); }
+    .btn-google img { width: 20px; height: 20px; }
+    .login-error { color: var(--danger); font-size: 13.5px; margin-top: var(--sp-4); font-weight: 600; }
+
+    /* Modal */
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(5, 7, 15, 0.85);
+      backdrop-filter: blur(8px);
+      display: grid;
+      place-items: center;
+      padding: var(--sp-4);
+    }
+    .modal-content {
+      background: var(--modal-bg);
+      border: 1.5px solid var(--modal-border);
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: max-width 0.25s ease, background 0.3s ease, border-color 0.3s ease;
+    }
+    .modal-content.show-comments-pane {
+      max-width: 860px; /* Expand when showing comments pane */
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--modal-border);
+    }
+    .modal-header h2 { font-size: 18px; color: var(--heading-color); margin: 0; font-weight: 700; }
+    .close-modal-btn { font-size: 20px; font-weight: 400; color: var(--text-soft); border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background 0.2s, color 0.2s; }
+    .close-modal-btn:hover { color: var(--heading-color); background: var(--tr-hover); }
+    
+    .modal-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hdr-action-btn {
+      background: var(--btn-ghost-bg);
+      border: 1px solid var(--btn-ghost-border);
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background 0.2s, transform 0.2s, color 0.2s;
+    }
+    .hdr-action-btn:hover {
+      background: var(--btn-ghost-hover);
+    }
+    .hdr-action-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(124, 131, 255, 0.4);
+    }
+    
+    /* Split Layout */
+    .modal-split-body {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      min-height: 420px;
+    }
+    .modal-form-pane {
+      flex: 1.2;
+      padding: 24px;
+    }
+    .modal-comments-pane {
+      flex: 0.8;
+      background: var(--modal-comments-bg);
+      border-left: 1px solid var(--modal-comments-border);
+      display: flex;
+      flex-direction: column;
+      width: 320px;
+      min-width: 320px;
+      transition: width 0.25s ease, min-width 0.25s ease, opacity 0.25s ease, background 0.3s ease;
+    }
+    .modal-content:not(.show-comments-pane) .modal-comments-pane {
+      width: 0;
+      min-width: 0;
+      opacity: 0;
+      border-left-width: 0;
+      overflow: hidden;
+      display: none;
+    }
+    .comments-pane-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .comments-pane-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--heading-color);
+    }
+    .comments-pane-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      max-height: 280px;
+      padding-right: 4px;
+    }
+    .comments-pane-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Modal Form Field overrides */
+    .modal-content input,
+    .modal-content select,
+    .modal-content textarea {
+      background: var(--modal-content-input-bg) !important;
+      border: 1px solid var(--modal-content-input-border) !important;
+      border-radius: 8px !important;
+      padding: 10px 14px !important;
+      color: var(--text) !important;
+      font-size: 14px !important;
+      font-family: inherit !important;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.3s;
+    }
+    .modal-content input:focus,
+    .modal-content select:focus,
+    .modal-content textarea:focus {
+      border-color: var(--accent) !important;
+      outline: none !important;
+      box-shadow: 0 0 0 2px rgba(124, 131, 255, 0.15);
+    }
+    
+    /* Cancel/Save Pill Button overrides */
+    #cancel-single-edit-btn, #cancel-bulk-edit-btn {
+      background: var(--btn-ghost-bg);
+      color: var(--text);
+      border: 1px solid var(--btn-ghost-border);
+      border-radius: 20px;
+      font-weight: 700;
+      padding: 10px 22px;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    #cancel-single-edit-btn:hover, #cancel-bulk-edit-btn:hover {
+      background: var(--btn-ghost-hover);
+    }
+    
+    .modal-content .btn-solid {
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-weight: 700;
+      padding: 10px 22px;
+      font-size: 13.5px;
+      box-shadow: 0 4px 14px rgba(124, 131, 255, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .modal-content .btn-solid:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(124, 131, 255, 0.55);
+    }
+
+    /* Custom Scrollbar */
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: var(--radius-pill);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: var(--radius-pill);
+      border: 2px solid var(--scrollbar-track);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* Clickable row & selection styles */
+    .clickable-row {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .clickable-row:hover {
+      background: var(--tr-hover) !important;
+    }
+    .clickable-row.selected-row {
+      background: rgba(124, 131, 255, 0.12) !important;
+    }
+
+    /* Bulk actions bar styling */
+    .bulk-actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bulk-bar-bg);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 12px 20px;
+      margin-bottom: var(--sp-4);
+      box-shadow: 0 8px 24px rgba(124, 131, 255, 0.15);
+      animation: slideInDown 0.2s ease;
+    }
+    .bulk-actions-info {
+      font-weight: 600;
+      color: var(--heading-color);
+      font-size: 14.5px;
+    }
+    .bulk-actions-btns {
+      display: flex;
+      gap: var(--sp-2);
+      align-items: center;
+    }
+    .bulk-actions-btns select {
+      background: var(--input-bg);
+      border: 1.5px solid var(--input-border);
+      color: var(--input-color);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .bulk-actions-btns select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    @keyframes slideInDown {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Checkbox column styling */
+    .col-select {
+      width: 40px;
+      text-align: center;
+    }
+    .purchase-select, #select-all-purchases {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1.5px solid var(--text-soft);
+      border-radius: 50%;
+      outline: none;
+      cursor: pointer;
+      vertical-align: middle;
+      transition: all 0.2s ease;
+      background: transparent;
+      display: inline-block;
+    }
+    
+    .purchase-select {
+      opacity: 0;
+    }
+    
+    .clickable-row:hover .purchase-select {
+      opacity: 0.6;
+    }
+    
+    .purchase-select:hover {
+      opacity: 1 !important;
+      border-color: var(--accent);
+    }
+    
+    .purchase-select:checked, #select-all-purchases:checked {
+      opacity: 1 !important;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    #select-all-purchases {
+      opacity: 0.3;
+    }
+    #select-all-purchases:hover {
+      opacity: 1;
+    }
+    
+    /* Draw Checkmark */
+    .purchase-select:checked::after, #select-all-purchases:checked::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 9px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    
+    /* Indeterminate state for select-all */
+    #select-all-purchases:indeterminate {
+      opacity: 1;
+      border-color: var(--accent);
+      background: transparent;
+    }
+    #select-all-purchases:indeterminate::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 8px;
+      width: 8px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* Disabled bulk action buttons styling */
+    .bulk-actions-btns button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Chat bubble comments styling */
+    .comment-bubble {
+      background: var(--comment-bubble-bg);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      font-size: 13.5px;
+      line-height: 1.4;
+      border-top-left-radius: 2px;
+      border: 1.5px solid var(--comment-bubble-border);
+    }
+    .comment-date {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+    }
+    .no-comments-placeholder {
+      color: var(--muted);
+      text-align: center;
+      font-size: 13.5px;
+      padding: var(--sp-4) 0;
+    }
+    .comment-menu-dropdown {
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background: var(--comment-dropdown-bg);
+      border: 1.5px solid var(--comment-dropdown-border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      min-width: 100px;
+      padding: 4px 0;
+      margin-top: 4px;
+    }
+    .comment-menu-dropdown button {
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-soft) !important;
+      font-family: inherit;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    .comment-menu-dropdown .edit-comment-btn:hover {
+      background: var(--comment-dropdown-hover);
+      color: var(--heading-color) !important;
+    }
+    .comment-menu-dropdown .delete-comment-btn {
+      color: #ef4444 !important;
+      opacity: 0.8;
+    }
+    .comment-menu-dropdown .delete-comment-btn:hover {
+      background: rgba(239, 68, 68, 0.08);
+      color: #ef4444 !important;
+      opacity: 1;
+    }
+    .cancel-comment-edit-btn {
+      background: none;
+      border: none;
+      padding: 4px 8px;
+      color: var(--text-soft);
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .cancel-comment-edit-btn:hover {
+      color: var(--heading-color);
+    }
+    .edit-comment-textarea {
+      width: 100%;
+      min-height: 50px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--accent);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13.5px;
+      resize: none;
+      margin-bottom: 6px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    
+    /* Estilos dinámicos para el selector de estado en el modal */
+    #edit-pur-status, #bulk-edit-status {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    #edit-pur-status.status-pending, #bulk-edit-status.status-pending {
+      background: rgba(245, 158, 11, 0.15) !important;
+      color: #f59e0b !important;
+      border-color: rgba(245, 158, 11, 0.3) !important;
+    }
+    #edit-pur-status.status-paid, #bulk-edit-status.status-paid {
+      background: rgba(59, 130, 246, 0.15) !important;
+      color: #3b82f6 !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+    }
+    #edit-pur-status.status-delivered, #bulk-edit-status.status-delivered {
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #10b981 !important;
+      border-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    #edit-pur-status option, #bulk-edit-status option {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      font-weight: normal;
+    }
+
+    /* Excel Column Filter Styling */
+    .excel-th-content {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+    }
+    .excel-filter-trigger {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      outline: none;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .excel-filter-trigger:hover, .excel-filter-trigger.active {
+      color: var(--accent);
+      background: rgba(124, 131, 255, 0.15);
+    }
+    .excel-filter-trigger.active::after {
+      content: '⚡';
+      font-size: 8px;
+      margin-left: 2px;
+      color: #f59e0b;
+    }
+    .excel-popover {
+      position: absolute;
+      z-index: 2000;
+      width: 220px;
+      background: var(--modal-bg);
+      border: 1.5px solid var(--modal-border);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+    .popover-search-wrap input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px !important;
+      font-size: 13px !important;
+      background: var(--input-bg) !important;
+      border: 1px solid var(--input-border) !important;
+      color: var(--text) !important;
+    }
+    .popover-options-list {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px;
+      background: rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .popover-option-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-soft);
+      user-select: none;
+      box-sizing: border-box;
+    }
+    .popover-option-item:hover {
+      background: var(--tr-hover);
+      color: var(--text);
+    }
+    .popover-option-item input[type="checkbox"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      opacity: 1 !important;
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      border-radius: 2px !important;
+      border: 1px solid var(--text-soft) !important;
+    }
+    .popover-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+    .popover-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .popover-btn-cancel {
+      background: none;
+      border: 1px solid var(--btn-ghost-border);
+      color: var(--text-soft);
+    }
+    .popover-btn-cancel:hover {
+      background: var(--btn-ghost-hover);
+      color: var(--text);
+    }
+    .popover-btn-apply {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+    }
+    .popover-btn-apply:hover {
+      background: var(--accent-soft);
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== LOGIN ===== -->
+  <div class="login-screen" id="login-view">
+    <div class="login-card">
+      <img src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto var(--sp-4); border: 3px solid var(--accent); box-shadow: 0 0 20px rgba(124, 131, 255, 0.4);" />
+      <h1>Panel de Gyro Store</h1>
+      <p>Acceso solo para administradores autorizados.</p>
+      <button class="btn-google" id="btn-google">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
+        Iniciar sesión con Google
+      </button>
+      <p class="login-error hidden" id="login-error"></p>
+    </div>
+  </div>
+
+  <!-- ===== PANEL ===== -->
+  <div class="admin-wrap hidden" id="panel-view">
+    <div class="admin-head">
+      <div style="display: flex; align-items: center; gap: var(--sp-3);">
+        <img src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);" />
+        <div>
+          <h1 style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;">🛠️ Gyro Store - Panel de administración <a href="/" style="font-size:13px;font-weight:600;color:var(--accent-soft); margin-left: 8px;">← Ver tienda</a></h1>
+        </div>
+      </div>
+      <div class="user-box">
+        <img id="user-photo" alt="" />
+        <span id="user-email"></span>
+        <button class="hdr-action-btn" id="btn-settings" title="Configuración" style="font-size: 16px; padding: 8px;">⚙️</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="purchases">Compras China</button>
+      <button class="tab" data-tab="stock">Stock</button>
+      <button class="tab" data-tab="products">Productos</button>
+      <button class="tab" data-tab="orders">Pedidos</button>
+    </div>
+
+    <!-- Productos -->
+    <section id="tab-products" class="hidden">
+      <div class="panel">
+        <h2 id="form-title">Nuevo producto</h2>
+        <form id="product-form">
+          <input type="hidden" id="p-id" />
+          <div class="grid-form">
+            <label>Nombre <input id="p-name" required /></label>
+            <label>Categoría <select id="p-category" required></select></label>
+            <label>Precio (C$) <input id="p-price" type="number" min="0" step="0.01" required /></label>
+            <label>URL de imagen principal (opcional) <input id="p-img" placeholder="https://… o /img/x.webp" /></label>
+            <label style="grid-column:1/-1">Descripción <textarea id="p-desc"></textarea></label>
+            <label style="grid-column:1/-1">Imágenes de galería — URLs separadas por coma <input id="p-images" placeholder="https://a.webp, https://b.webp" /></label>
+            <label style="grid-column:1/-1">Variantes / colores — separadas por coma <input id="p-variants" placeholder="Negro, Blanco, Azul" /></label>
+            <label style="grid-column:1/-1">Especificaciones — una por línea, formato «Etiqueta: Valor»
+              <textarea id="p-specs" rows="4" placeholder="Impedancia: 24 Ω&#10;Bluetooth: 5.3&#10;Batería: 30 h"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-solid">Guardar producto</button>
+            <button type="button" class="btn-ghost hidden" id="cancel-edit">Cancelar edición</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Catálogo (<span id="product-count">0</span>)</h2>
+        <table>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th></th></tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Pedidos -->
+    <section id="tab-orders" class="hidden">
+      <div class="panel">
+        <h2>Pedidos recientes</h2>
+        <table id="orders-table">
+          <thead><tr><th>Pedido</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Estado</th><th>Fecha</th></tr></thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Compras China -->
+    <section id="tab-purchases">
+
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-4);">
+          <h2 style="margin: 0;">Historial de Compras (Excel)</h2>
+          <button type="button" class="btn-solid" id="btn-new-purchase" style="margin: 0;">+ Registrar Compra</button>
+        </div>
+        <div id="purchases-bulk-actions" class="bulk-actions-bar hidden">
+          <div class="bulk-actions-info">
+            <span id="bulk-select-count">0</span> seleccionados
+          </div>
+          <div class="bulk-actions-btns">
+            <button type="button" class="btn-ghost" id="btn-bulk-edit" style="margin: 0; padding: 6px 12px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;"><span style="font-size: 14px;">✏️</span> Editar</button>
+            <button type="button" class="btn-ghost" id="btn-bulk-comment" style="margin: 0; padding: 6px 12px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;"><span style="font-size: 14px;">💬</span> Comentarios</button>
+            <button type="button" class="btn-ghost del-btn" id="btn-bulk-delete" style="margin: 0; padding: 6px 12px; font-size: 13.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600;"><span style="font-size: 14px;">🗑️</span> Eliminar</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table id="purchases-table" style="min-width: 1000px;">
+            <thead>
+              <tr>
+                <th class="col-select"><input type="checkbox" id="select-all-purchases" /></th>
+                <th>
+                  <div class="excel-th-content">
+                    <span>Lote</span>
+                    <button type="button" class="excel-filter-trigger" data-table="purchases" data-col="lote">▼</button>
+                  </div>
+                </th>
+                <th>
+                  <div class="excel-th-content">
+                    <span>Código</span>
+                    <button type="button" class="excel-filter-trigger" data-table="purchases" data-col="code">▼</button>
+                  </div>
+                </th>
+                <th>
+                  <div class="excel-th-content">
+                    <span>Fecha</span>
+                    <button type="button" class="excel-filter-trigger" data-table="purchases" data-col="date">▼</button>
+                  </div>
+                </th>
+                <th style="min-width: 280px;">
+                  <div class="excel-th-content">
+                    <span>Producto</span>
+                    <button type="button" class="excel-filter-trigger" data-table="purchases" data-col="product">▼</button>
+                  </div>
+                </th>
+                <th>Cant.</th>
+                <th>Costo Unit. (USD)</th>
+                <th>Imp. Unit. (USD)</th>
+                <th>Costo Unit. (USD)</th>
+                <th>Pre-Total (USD)</th>
+                <th>Imp. Total (USD)</th>
+                <th>Total (USD)</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="purchases-tbody">
+              <!-- Compras registradas se listan aquí -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stock (Productos Recibidos) -->
+    <section id="tab-stock" class="hidden">
+      <div class="panel">
+        <h2 style="margin: 0 0 var(--sp-4);">Inventario de Productos Recibidos (Stock)</h2>
+        <div style="overflow-x: auto;">
+          <table id="stock-table" style="min-width: 1000px;">
+            <thead>
+              <tr>
+                <th>
+                  <div class="excel-th-content">
+                    <span>Lote</span>
+                    <button type="button" class="excel-filter-trigger" data-table="stock" data-col="lote">▼</button>
+                  </div>
+                </th>
+                <th>
+                  <div class="excel-th-content">
+                    <span>Código</span>
+                    <button type="button" class="excel-filter-trigger" data-table="stock" data-col="code">▼</button>
+                  </div>
+                </th>
+                <th style="min-width: 320px;">
+                  <div class="excel-th-content">
+                    <span>Producto</span>
+                    <button type="button" class="excel-filter-trigger" data-table="stock" data-col="product">▼</button>
+                  </div>
+                </th>
+                <th>Cant.</th>
+                <th>Costo Unit. (USD)</th>
+                <th>Total (USD)</th>
+              </tr>
+            </thead>
+            <tbody id="stock-tbody">
+              <!-- Carga dinámica del stock recibido -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== MODAL EDITAR COMPRA ===== -->
+  <div id="purchase-edit-modal" class="modal hidden">
+    <div class="modal-content" id="edit-modal-content">
+      <div class="modal-header">
+        <h2 id="purchase-modal-title">Editar Compra de China</h2>
+        <div class="modal-header-actions">
+          <button type="button" class="hdr-action-btn" id="btn-toggle-comments" title="Ver comentarios">💬</button>
+          <button class="close-modal-btn" type="button" id="close-single-edit-modal-btn">&times;</button>
+        </div>
+      </div>
+      <div class="modal-split-body">
+        <!-- Formulario (Izquierda) -->
+        <div class="modal-form-pane">
+          <form id="purchase-edit-form">
+            <input type="hidden" id="edit-pur-id" />
+            <div class="grid-form" style="grid-template-columns: 1fr 1fr;">
+              <label>Lote <input id="edit-pur-lote" required /></label>
+              <label>Código <input id="edit-pur-code" /></label>
+              <label style="grid-column: 1;">Fecha <input id="edit-pur-date" type="date" required /></label>
+              <label style="grid-column: 1 / -1">Producto <input id="edit-pur-product" required list="products-datalist" /></label>
+              <label>Cantidad <input id="edit-pur-qty" type="number" min="1" required /></label>
+              <label>Costo Base (USD) <input id="edit-pur-cost" type="number" min="0" step="0.01" required /></label>
+              <label>Impuesto u. (USD) <input id="edit-pur-tax" type="number" min="0" step="0.0001" required /></label>
+              <label>Tasa Cambio <input id="edit-pur-rate" type="number" step="0.01" required /></label>
+              <label style="grid-column: 1 / -1">Estado <select id="edit-pur-status" required>
+                <option value="Pedido">Pedido</option>
+                <option value="En tránsito">En tránsito</option>
+                <option value="Recibido">Recibido</option>
+              </select></label>
+              <input type="hidden" id="edit-pur-notes" />
+            </div>
+            <div class="form-actions" style="margin-top: var(--sp-4); justify-content: flex-end;">
+              <button type="button" class="btn-ghost" id="cancel-single-edit-btn">Cancelar</button>
+              <button type="submit" class="btn-solid">Guardar</button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Panel de Comentarios (Derecha) -->
+        <div class="modal-comments-pane">
+          <div class="comments-pane-inner">
+            <div class="comments-pane-title">Comentarios</div>
+            <div class="comments-pane-list" id="modal-comments-list">
+              <!-- Comentarios cargados dinámicamente -->
+            </div>
+            <form id="modal-comments-form" class="comments-pane-form">
+              <textarea id="modal-comment-text" rows="3" required placeholder="Escribe un comentario..." style="background: #1e263d; border: 1.5px solid rgba(255, 255, 255, 0.12); color: #fff; padding: 10px; border-radius: var(--radius-sm); font-family: inherit; resize: none; font-size: 13.5px;"></textarea>
+              <button type="submit" class="btn-solid" style="padding: 6px 12px; font-size: 12.5px; align-self: flex-end; margin-top: 4px;">Guardar Comentario</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL EDITAR EN LOTE ===== -->
+  <div id="purchase-bulk-edit-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Editar Compras en Lote</h2>
+        <button class="close-modal-btn" type="button" id="close-bulk-edit-modal-btn">&times;</button>
+      </div>
+      <form id="purchase-bulk-edit-form">
+        <div class="grid-form" style="grid-template-columns: 1fr;">
+          <label>Lote (Opcional, dejar vacío para no modificar) <input id="bulk-edit-lote" placeholder="Ej: LT2" /></label>
+          <label>Estado <select id="bulk-edit-status">
+            <option value="" selected>— No modificar estado —</option>
+            <option value="Pedido">Pedido</option>
+            <option value="En tránsito">En tránsito</option>
+            <option value="Recibido">Recibido</option>
+          </select></label>
+          <label>Tasa de Cambio (Opcional, dejar vacío para no modificar) <input id="bulk-edit-rate" type="number" step="0.01" placeholder="Ej: 37.00" /></label>
+        </div>
+        <div style="margin-top: var(--sp-3); font-size: 13px; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.06); padding-top: var(--sp-2);">
+          Se modificarán <span id="bulk-edit-count-label" style="font-weight: 700; color: var(--accent-soft);">0</span> registros seleccionados. Los campos vacíos no serán alterados.
+        </div>
+        <div class="form-actions" style="margin-top: var(--sp-4); justify-content: flex-end;">
+          <button type="button" class="btn-ghost" id="cancel-bulk-edit-btn">Cancelar</button>
+          <button type="submit" class="btn-solid">Guardar en Lote</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL CONFIGURACIÓN ===== -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Configuración</h2>
+        <button class="close-modal-btn" type="button" id="close-settings-modal-btn">&times;</button>
+      </div>
+      <form id="settings-form" style="padding: 24px;">
+        <div class="grid-form" style="grid-template-columns: 1fr;">
+          <label>Tema
+            <select id="settings-theme" required>
+              <option value="dark">Oscuro (Dark)</option>
+              <option value="light">Claro (Light)</option>
+            </select>
+          </label>
+        </div>
+        <div style="margin-top: var(--sp-5); border-top: 1px solid var(--border); padding-top: var(--sp-4); display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3);">
+          <button type="button" class="btn-ghost del-btn" id="btn-logout" style="margin: 0; padding: 8px 16px; font-size: 13px; color: var(--danger); background: rgba(239, 68, 68, 0.15);">Cerrar Sesión</button>
+          <div class="form-actions" style="margin: 0; justify-content: flex-end; gap: var(--sp-2);">
+            <button type="button" class="btn-ghost" id="cancel-settings-btn">Cancelar</button>
+            <button type="submit" class="btn-solid">Guardar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <datalist id="products-datalist"></datalist>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Floating Excel Filter Popover -->
+  <div id="excel-filter-popover" class="excel-popover hidden">
+    <div class="popover-search-wrap">
+      <input type="text" id="popover-search" placeholder="Buscar..." autocomplete="off" />
+    </div>
+    <div class="popover-options-list" id="popover-options">
+      <!-- Options dynamically rendered here -->
+    </div>
+    <div class="popover-actions">
+      <button type="button" class="popover-btn-cancel" id="popover-cancel-btn">Cancelar</button>
+      <button type="button" class="popover-btn-apply" id="popover-apply-btn">Aplicar</button>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
