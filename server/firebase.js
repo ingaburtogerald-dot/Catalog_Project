@@ -45,6 +45,6 @@ function init() {
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 const app = init();
-const db = getFirestore(app);
+const db = getFirestore();
 
 module.exports = { admin: app, db, FieldValue, Timestamp };
