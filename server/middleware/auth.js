@@ -2,6 +2,7 @@
 // El cliente envía:  Authorization: Bearer <ID_TOKEN de Firebase>
 // Se verifica el token con el Admin SDK y se comprueba la lista blanca de correos.
 const { admin } = require('../firebase');
+const { getAuth } = require('firebase-admin/auth');
 const config = require('../config');
 
 module.exports = async function requireAdmin(req, res, next) {
@@ -23,7 +24,7 @@ module.exports = async function requireAdmin(req, res, next) {
   }
 
   try {
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await getAuth(admin).verifyIdToken(token);
 
     if (!decoded.email || !decoded.email_verified) {
       return res.status(403).json({ error: 'El correo de la cuenta no está verificado.' });
