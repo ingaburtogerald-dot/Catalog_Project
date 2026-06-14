@@ -1433,6 +1433,18 @@ async function init() {
     return;
   }
 
+  // Si estamos en entorno local, mostramos el botón de inicio de sesión de desarrollador
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    const btnDev = $('#btn-dev-login');
+    if (btnDev) {
+      btnDev.classList.remove('hidden');
+      btnDev.addEventListener('click', () => {
+        window.location.search = '?dev=true';
+      });
+    }
+  }
+
   // Configuración de Firebase Web
   let fbConfig;
   try {
