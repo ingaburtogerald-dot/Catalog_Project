@@ -43,7 +43,7 @@ rootHtmlFiles.forEach(file => {
   const content = fs.readFileSync(filePath, 'utf8');
   const hasLink = content.includes('href="admin.html"') || content.includes("href='admin.html'");
   const hasText = content.includes('Iniciar Sesión');
-  
+
   if (hasLink && hasText) {
     console.log(`✅ ${file}: OK`);
   } else {
@@ -62,7 +62,7 @@ subfolderHtmlFiles.forEach(file => {
   const content = fs.readFileSync(filePath, 'utf8');
   const hasLink = content.includes('href="../admin.html"') || content.includes("href='../admin.html'");
   const hasText = content.includes('Iniciar Sesión');
-  
+
   if (hasLink && hasText) {
     console.log(`✅ ${file}: OK`);
   } else {
@@ -81,7 +81,7 @@ jsFiles.forEach(file => {
   const content = fs.readFileSync(filePath, 'utf8');
   const hasLink = content.includes('admin.html');
   const hasText = content.includes('Iniciar Sesión');
-  
+
   if (hasLink && hasText) {
     console.log(`✅ ${file}: OK`);
   } else {

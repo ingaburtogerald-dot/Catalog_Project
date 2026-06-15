@@ -10,6 +10,8 @@ let CATEGORIES = [{ id: 'all', name: 'Todo el catálogo', icon: '🛍️' }];
 let PRODUCTS = [];
 let activeCategory = 'all';
 let searchTerm = '';
+let isEditMode = false;
+let sortableInstance = null;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -84,7 +86,7 @@ function renderCatalog() {
     const href = `producto.html?id=${encodeURIComponent(p.id)}`;
     const hasVariants = p.variants && p.variants.length > 1;
     return `
-    <article class="card" style="animation-delay:${i * 0.05}s">
+    <article class="card" data-id="${esc(p.id)}" style="animation-delay:${i * 0.05}s">
       <a class="card-link" href="${href}" aria-label="Ver ${esc(p.name)}">
         <div class="card-media">
           <span class="card-tag">${esc(p.category)}</span>
@@ -141,6 +143,95 @@ function setCategory(cat) {
 /* ---------- init ---------- */
 async function init() {
   $('#year').textContent = new Date().getFullYear();
+
+  const isAdmin = localStorage.getItem('gyro_admin_logged_in') === 'true' && localStorage.getItem('gyro_admin_dev_mode') !== 'seller';
+  const btnToggleEdit = $('#btn-toggle-edit');
+  const btnSaveOrder = $('#btn-save-order');
+  const editPanel = $('#admin-edit-panel');
+
+  if (isAdmin && editPanel) {
+    editPanel.hidden = false;
+
+    btnToggleEdit.addEventListener('click', () => {
+      isEditMode = !isEditMode;
+      const grid = $('#catalog-grid');
+      
+      if (isEditMode) {
+        btnToggleEdit.innerHTML = '<i class="fa-solid fa-times"></i> Cancelar Edición';
+        btnToggleEdit.style.background = 'var(--text-soft)';
+        btnSaveOrder.hidden = false;
+        
+        // Prevent clicking links
+        grid.classList.add('edit-mode');
+        const style = document.createElement('style');
+        style.id = 'edit-mode-styles';
+        style.innerHTML = `.edit-mode .card { cursor: grab; } .edit-mode .card:active { cursor: grabbing; } .edit-mode a { pointer-events: none; }`;
+        document.head.appendChild(style);
+
+        sortableInstance = new Sortable(grid, {
+          animation: 150,
+          ghostClass: 'sortable-ghost'
+        });
+      } else {
+        btnToggleEdit.innerHTML = '<i class="fa-solid fa-pen"></i> Editar Catálogo';
+        btnToggleEdit.style.background = 'var(--accent)';
+        btnSaveOrder.hidden = true;
+        
+        grid.classList.remove('edit-mode');
+        const style = $('#edit-mode-styles');
+        if (style) style.remove();
+        
+        if (sortableInstance) sortableInstance.destroy();
+        sortableInstance = null;
+        renderCatalog(); // Reset order
+      }
+    });
+
+    btnSaveOrder.addEventListener('click', async () => {
+      if (!sortableInstance) return;
+      const order = sortableInstance.toArray(); // These are data-id attributes
+      const payload = order.map((id, index) => ({ id, order: index }));
+      
+      const originalText = btnSaveOrder.innerHTML;
+      btnSaveOrder.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+      btnSaveOrder.disabled = true;
+
+      try {
+        const token = localStorage.getItem('gyro_admin_dev_mode') === 'true' ? 'dev-token' : ''; // simplified auth check for dev
+        const res = await fetch(`${API}/products/reorder`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ items: payload })
+        });
+
+        if (!res.ok) throw new Error("Error al guardar");
+
+        // Actualizar el arreglo local
+        const newProducts = [];
+        order.forEach(id => {
+          const p = PRODUCTS.find(x => x.id === id);
+          if (p) newProducts.push(p);
+        });
+        
+        PRODUCTS.forEach(p => {
+          if (!order.includes(p.id)) newProducts.push(p);
+        });
+        
+        PRODUCTS = newProducts;
+        btnToggleEdit.click(); // Salir del modo edición
+        // Usar alert/toast si está disponible
+        if (window.toast) toast('Orden guardado exitosamente');
+      } catch (err) {
+        alert("Error al guardar el nuevo orden: " + err.message);
+      } finally {
+        btnSaveOrder.innerHTML = originalText;
+        btnSaveOrder.disabled = false;
+      }
+    });
+  }
 
   $('#btn-menu').addEventListener('click', openMenu);
   $('#btn-close-menu').addEventListener('click', closeMenu);

@@ -276,6 +276,7 @@
         </div>
       </div>
       <div class="user-box">
+        <button class="btn-solid" id="btn-report-sale" style="border:none; cursor:pointer;">+ Reportar Venta</button>
         <img id="user-photo" alt="" />
         <span id="user-email"></span>
         <button class="hdr-action-btn" id="btn-settings" title="Configuración" style="font-size: 16px; padding: 8px; background: var(--btn-ghost-bg); border: 1.5px solid var(--btn-ghost-border); border-radius: 8px; cursor: pointer;">⚙️</button>
@@ -360,8 +361,41 @@
     </div>
   </div>
 
+  <!-- ===== MODAL REPORTAR VENTA ===== -->
+  <div id="report-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>Reportar Nueva Venta</h2>
+        <button class="close-modal-btn" type="button" id="close-report-modal-btn">&times;</button>
+      </div>
+      <form id="report-form" style="padding: 24px;">
+        <div id="report-items-container" style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Items dinámicos -->
+        </div>
+        <button type="button" id="btn-add-report-item" class="btn-ghost" style="margin-top: 16px; width: 100%; border: 1.5px dashed var(--btn-ghost-border); background: transparent;">+ Añadir otro producto</button>
+        
+        <div style="margin-top: 24px; padding: 16px; background: rgba(124, 131, 255, 0.05); border-radius: 8px; border: 1px solid rgba(124, 131, 255, 0.2);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: var(--text-soft);">
+            <span>Subtotal Venta:</span>
+            <strong id="report-subtotal" style="color: var(--heading-color);">C$0.00</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: bold; color: var(--accent);">
+            <span>Comisión Estimada:</span>
+            <strong id="report-commission">Calculando...</strong>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--sp-5); border-top: 1px solid var(--border); padding-top: var(--sp-4); display: flex; justify-content: flex-end; gap: var(--sp-2);">
+          <button type="button" class="btn-ghost" id="cancel-report-btn" style="cursor: pointer;">Cancelar</button>
+          <button type="submit" class="btn-solid" id="submit-report-btn" style="border: none; cursor: pointer;">Enviar Reporte</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script type="module" src="assets/js/vendedor.js"></script>
+  <script src="assets/js/auth-global.js"></script>
 </body>
 </html>

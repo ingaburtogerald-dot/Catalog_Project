@@ -121,18 +121,19 @@ function toast(msg) {
    Productos
    ============================================================ */
 async function loadProducts() {
-  const products = await api('/products');
+  const products = await api('/products?all=true');
   $('#product-count').textContent = products.length;
   $('#products-tbody').innerHTML = products.map((p) => `
     <tr>
       <td>${esc(p.name)}</td>
       <td>${esc(p.category)}</td>
-      <td>${money(p.price)}</td>
-      <td class="row-actions">
+      <td><span class="status-pill status-delivered" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: none;">Stock: ${p.stock || 0}</span></td>
+      <td class="text-right">${money(p.price)}</td>
+      <td class="row-actions text-center">
         <button class="edit-btn" data-edit='${esc(JSON.stringify(p))}'>Editar</button>
         <button class="del-btn" data-del="${esc(p.id)}" data-name="${esc(p.name)}">Borrar</button>
       </td>
-    </tr>`).join('');
+    </tr>`).join('') || '<tr><td colspan="5" class="muted-note">No hay productos.</td></tr>';
   populateProductsDatalist(products);
 }
 
@@ -1190,6 +1191,9 @@ function showLogin(errorMsg) {
 async function showPanel(user) {
   currentUserInfo = user;
   localStorage.setItem('gyro_admin_logged_in', 'true');
+  localStorage.setItem('gyro_user_name', user.displayName || user.email.split('@')[0] || '');
+  localStorage.setItem('gyro_user_photo', user.photoURL || '');
+  localStorage.setItem('gyro_user_role', user.role || '');
 
   if (user.role === 'seller') {
     localStorage.setItem('gyro_admin_dev_mode', 'seller');

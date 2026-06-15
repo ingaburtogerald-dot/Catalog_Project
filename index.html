@@ -19,6 +19,9 @@
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="icon" type="image/jpeg" href="assets/img/Gyro_icon-32.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- ===== Sortable.js ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
   <!-- ===== Datos estructurados (negocio local) ===== -->
   <script type="application/ld+json">
@@ -218,8 +221,15 @@
   <!-- ============ TOAST ============ -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
+  <!-- ============ ADMIN EDIT BUTTON ============ -->
+  <div id="admin-edit-panel" hidden style="position: fixed; bottom: 20px; left: 20px; z-index: 1000; display: flex; gap: 10px;">
+    <button id="btn-toggle-edit" class="btn btn--checkout" style="background: var(--accent); color: white; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"><i class="fa-solid fa-pen"></i> Editar Catálogo</button>
+    <button id="btn-save-order" class="btn btn--checkout" hidden style="background: #10b981; color: white; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"><i class="fa-solid fa-check"></i> Guardar Orden</button>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/js/cart.js"></script>
   <script src="assets/js/catalog.js"></script>
+  <script src="assets/js/auth-global.js"></script>
 </body>
 </html>

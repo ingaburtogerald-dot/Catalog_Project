@@ -9,12 +9,36 @@ const COL = config.collections.products;
 
 // ---------- Público ----------
 
+let stockCache = null;
+let stockCacheTime = 0;
+const CACHE_TTL = 10000; // 10 seconds
+
 // GET /api/products?category=in-ear&q=texto
 router.get('/', asyncHandler(async (req, res) => {
   const snap = await db.collection(COL).get();
   let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  const { category, q } = req.query;
+  // Calcular stock desde purchases con caché
+  if (!stockCache || Date.now() - stockCacheTime > CACHE_TTL) {
+    const purSnap = await db.collection(config.collections.purchases).where('status', '==', 'Recibido').get();
+    const stocks = {};
+    purSnap.docs.forEach(doc => {
+      const p = doc.data();
+      if (p.product && p.qty) {
+        const available = Math.max(0, p.qty - (p.qtySold || 0));
+        stocks[p.product] = (stocks[p.product] || 0) + available;
+      }
+    });
+    stockCache = stocks;
+    stockCacheTime = Date.now();
+  }
+
+  items.forEach(item => {
+    item.stock = stockCache[item.id] || 0;
+  });
+
+  // Filtros de categoría y búsqueda
+  const { category, q, all } = req.query;
   if (category && category !== 'all') {
     items = items.filter((p) => p.category === category);
   }
@@ -22,8 +46,20 @@ router.get('/', asyncHandler(async (req, res) => {
     const term = String(q).toLowerCase();
     items = items.filter((p) => `${p.name} ${p.desc}`.toLowerCase().includes(term));
   }
-  // Orden estable por nombre (createdAt puede no existir en datos viejos)
-  items.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  
+  // Filtrar stock si no es "all"
+  if (all !== 'true') {
+    items = items.filter(p => p.stock > 0);
+  }
+
+  // Orden estable por 'order' y luego por nombre
+  items.sort((a, b) => {
+    const orderA = typeof a.order === 'number' ? a.order : 999999;
+    const orderB = typeof b.order === 'number' ? b.order : 999999;
+    if (orderA !== orderB) return orderA - orderB;
+    return String(a.name).localeCompare(String(b.name));
+  });
+  
   res.json(items);
 }));
 
@@ -35,6 +71,25 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // ---------- Admin (protegido) ----------
+
+// PATCH /api/products/reorder
+router.patch('/reorder', requireAdmin, asyncHandler(async (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ error: 'Falta arreglo de items [{id, order}].' });
+  }
+
+  const batch = db.batch();
+  items.forEach((item) => {
+    if (item.id && typeof item.order === 'number') {
+      const ref = db.collection(COL).doc(item.id);
+      batch.update(ref, { order: item.order, updatedAt: FieldValue.serverTimestamp() });
+    }
+  });
+
+  await batch.commit();
+  res.json({ ok: true });
+}));
 
 // POST /api/products
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {

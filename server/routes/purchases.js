@@ -37,6 +37,23 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const targetDate = String(date || '').trim() || new Date().toISOString().split('T')[0];
   const targetStatus = String(status || 'Pedido').trim();
 
+  // Validar unicidad de códigos en compras
+  const codesToCheck = items.map(item => String(item.code || '').trim()).filter(Boolean);
+  if (codesToCheck.length > 0) {
+    const hasDuplicates = codesToCheck.some((val, i) => codesToCheck.indexOf(val) !== i);
+    if (hasDuplicates) {
+      return res.status(400).json({ error: 'No se permiten códigos duplicados en la misma transacción.' });
+    }
+
+    const purchasesSnap = await db.collection(COL).get();
+    const existingCodes = purchasesSnap.docs.map(d => String(d.data().code || '').trim().toLowerCase()).filter(Boolean);
+    for (const code of codesToCheck) {
+      if (existingCodes.includes(code.toLowerCase())) {
+        return res.status(400).json({ error: `El código "${code}" ya está registrado en otra compra. Debe ser único.` });
+      }
+    }
+  }
+
   // Obtener catálogo actual de productos para evitar duplicados
   const prodCol = config.collections.products;
   const prodSnap = await db.collection(prodCol).get();
@@ -67,6 +84,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
       totalNio,
       exchangeRate: rate,
       status: targetStatus,
+      approved: false,
       notes: String(req.body.notes || '').trim(),
       createdAt: FieldValue.serverTimestamp()
     };
@@ -106,33 +124,61 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 // PUT /api/purchases/:id
 router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COL).doc(req.params.id);
-  if (!(await ref.get()).exists) {
+  const docSnap = await ref.get();
+  if (!docSnap.exists) {
     return res.status(404).json({ error: 'Registro de compra no encontrado.' });
   }
+  const existingData = docSnap.data();
 
-  const { lote, code, date, product, qty, cost, tax, exchangeRate, status, notes } = req.body;
+  const { lote, code, date, receiveDate, product, qty, cost, tax, shipping, exchangeRate, status, notes, approved } = req.body;
+
+  const cleanCode = String(code || '').trim();
+  if (cleanCode) {
+    const snap = await db.collection(COL).get();
+    const anotherWithSameCode = snap.docs.some(d => d.id !== req.params.id && String(d.data().code || '').trim().toLowerCase() === cleanCode.toLowerCase());
+    if (anotherWithSameCode) {
+      return res.status(400).json({ error: `El código "${cleanCode}" ya está registrado en otra compra. Debe ser único.` });
+    }
+  }
+
   const rate = Number(exchangeRate) || 37.00;
   const targetQty = Math.max(1, parseInt(qty) || 1);
   const targetCost = Math.max(0, parseFloat(cost) || 0);
   const targetTax = Math.max(0, parseFloat(tax) || 0);
+  const targetShipping = Math.max(0, parseFloat(shipping) || 0);
   
-  const unitCost = targetCost + targetTax;
+  const unitCost = targetCost + targetTax + targetShipping;
   const totalUsd = targetQty * unitCost;
   const totalNio = totalUsd * rate;
+
+  const targetStatus = String(status || 'Pedido').trim();
+  let targetApproved = false;
+  if (targetStatus === 'Recibido') {
+    if (approved !== undefined) {
+      targetApproved = Boolean(approved);
+    } else if (existingData.status === 'Recibido') {
+      targetApproved = existingData.approved !== undefined ? existingData.approved : false;
+    } else {
+      targetApproved = false;
+    }
+  }
 
   const doc = {
     lote: String(lote || '').trim() || 'LT',
     code: String(code || '').trim(),
     date: String(date || '').trim() || new Date().toISOString().split('T')[0],
+    receiveDate: receiveDate !== undefined ? String(receiveDate || '').trim() : existingData.receiveDate || null,
     product: String(product || '').trim() || 'Artículo sin nombre',
     qty: targetQty,
     cost: targetCost,
     tax: targetTax,
+    shipping: targetShipping,
     unitCost,
     totalUsd,
     totalNio,
     exchangeRate: rate,
-    status: String(status || 'Pedido').trim(),
+    status: targetStatus,
+    approved: targetApproved,
     notes: notes !== undefined ? String(notes || '').trim() : undefined,
     updatedAt: FieldValue.serverTimestamp()
   };
