@@ -24,6 +24,7 @@ app.use('/api/config', require('./routes/config'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/purchases', require('./routes/purchases'));
+app.use('/api/users',    require('./routes/users'));
 
 // Servir frontend estático directamente desde la raíz del proyecto
 const publicDir = path.join(__dirname, '..');

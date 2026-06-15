@@ -41,6 +41,7 @@ async function api(path, options = {}) {
 let toastTimer;
 function toast(msg) {
   const t = $('#toast');
+  if (!t) return;
   t.textContent = msg;
   t.hidden = false;
   requestAnimationFrame(() => t.classList.add('show'));
@@ -152,8 +153,13 @@ function addReportItemRow() {
 }
 
 function openReportModal() {
-  if (catalogProducts.length === 0) loadProducts().then(() => openReportModal());
-  else {
+  if (catalogProducts.length === 0) {
+    loadProducts()
+      .then(() => openReportModal())
+      .catch(err => toast(`Error al cargar productos: ${err.message}`));
+    return;
+  }
+  {
     $('#report-items-container').innerHTML = '';
     addReportItemRow();
     updateReportEstimates();

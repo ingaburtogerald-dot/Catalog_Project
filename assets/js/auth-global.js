@@ -4,15 +4,34 @@
    la interfaz global de usuario (si tiene sesión iniciada).
    ============================================================ */
 
+// ── Bloqueo de dev mode (se ejecuta ANTES que los módulos diferidos) ───────
+// Elimina la clave de localStorage y el parámetro ?dev=true de la URL para
+// que ningún portal omita la autenticación real de Firebase.
+(function blockDevMode() {
+  const ADMIN_PAGES = ['admin.html', 'vendedor.html', 'analytics.html', 'usuarios.html'];
+  const page = location.pathname.split('/').pop() || '';
+  if (!ADMIN_PAGES.includes(page)) return;
+
+  // Quitar clave de localStorage
+  localStorage.removeItem('gyro_admin_dev_mode');
+
+  // Quitar ?dev=... de la URL sin recargar la página
+  const url = new URL(location.href);
+  if (url.searchParams.has('dev')) {
+    url.searchParams.delete('dev');
+    history.replaceState(null, '', url.toString());
+  }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   const isLoggedIn = localStorage.getItem('gyro_admin_logged_in') === 'true';
   if (!isLoggedIn) return;
 
   const userName = localStorage.getItem('gyro_user_name') || 'Usuario';
   const userPhoto = localStorage.getItem('gyro_user_photo') || 'assets/img/default-avatar.png';
-  const userRole = localStorage.getItem('gyro_user_role') === 'seller' ? 'Vendedor' : 'Administrador';
-  const portalUrl = localStorage.getItem('gyro_user_role') === 'seller' ? 'vendedor.html' : 'admin.html';
-
+  const role = localStorage.getItem('gyro_user_role');
+  const isSeller = role === 'seller';
+  const userRole = isSeller ? 'Vendedor' : 'Administrador';
   // 1. Mostrar Popup de Bienvenida (Solo 1 vez por sesión)
   if (!sessionStorage.getItem('gyro_welcome_shown')) {
     showWelcomePopup(userName, userPhoto);
@@ -20,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 2. Inyectar / Actualizar Widget Superior en Portales y Catálogo
-  injectOrUpdateHeaderWidget(userName, userPhoto, userRole, portalUrl);
+  injectOrUpdateHeaderWidget(userName, userPhoto, userRole, isSeller);
 });
 
 function showWelcomePopup(name, photo) {
@@ -80,7 +99,7 @@ function showWelcomePopup(name, photo) {
   });
 }
 
-function injectOrUpdateHeaderWidget(name, photo, role, portalUrl) {
+function injectOrUpdateHeaderWidget(name, photo, role, isSeller) {
   // 1. Si ya existe en Admin/Vendedor (btn-settings y menú desplegable)
   const existingAvatar = document.getElementById('user-avatar');
   const existingName = document.getElementById('menu-user-name');
@@ -121,6 +140,8 @@ function injectOrUpdateHeaderWidget(name, photo, role, portalUrl) {
         .global-widget-item:hover { background: rgba(255,255,255,0.05); }
         .global-widget-logout { color: #ef4444; }
         .global-widget-logout:hover { background: rgba(239, 68, 68, 0.1); }
+        .global-widget-divider { height: 1px; background: var(--border, rgba(255,255,255,0.08)); margin: 4px 0; }
+        .global-widget-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted, #717a9c); padding: 6px 12px 2px; }
       </style>
       <button class="global-widget-btn" id="btn-global-widget">
         <img src="${photo}" class="global-widget-avatar" onerror="this.src='assets/img/default-avatar.png'">
@@ -132,9 +153,26 @@ function injectOrUpdateHeaderWidget(name, photo, role, portalUrl) {
           <div style="font-weight: 700; color: #fff; font-size: 14px;">${name}</div>
           <div style="font-size: 12px; color: var(--accent);">${role}</div>
         </div>
-        <a href="${portalUrl}" class="global-widget-item">
-          <i class="fa-solid fa-gauge"></i> Ir a mi Panel
-        </a>
+        ${isSeller ? `
+          <a href="vendedor.html" class="global-widget-item">
+            <i class="fa-solid fa-chart-line"></i> Portal de Ventas
+          </a>
+        ` : `
+          <div class="global-widget-section">Panel de Administración</div>
+          <a href="admin.html" class="global-widget-item">
+            <i class="fa-solid fa-warehouse"></i> Portal de Inventario
+          </a>
+          <a href="vendedor.html" class="global-widget-item">
+            <i class="fa-solid fa-chart-line"></i> Portal de Ventas
+          </a>
+          <a href="analytics.html" class="global-widget-item">
+            <i class="fa-solid fa-chart-bar"></i> Portal de Reportes
+          </a>
+          <a href="usuarios.html" class="global-widget-item">
+            <i class="fa-solid fa-users"></i> Gestión de Usuarios
+          </a>
+        `}
+        <div class="global-widget-divider"></div>
         <a href="#" class="global-widget-item global-widget-logout" id="btn-global-logout">
           <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
         </a>
@@ -156,13 +194,57 @@ function injectOrUpdateHeaderWidget(name, photo, role, portalUrl) {
 
     document.getElementById('btn-global-logout').addEventListener('click', (e) => {
       e.preventDefault();
-      localStorage.removeItem('gyro_admin_logged_in');
-      localStorage.removeItem('gyro_admin_dev_mode');
-      localStorage.removeItem('gyro_user_name');
-      localStorage.removeItem('gyro_user_photo');
-      localStorage.removeItem('gyro_user_role');
-      sessionStorage.removeItem('gyro_welcome_shown');
-      window.location.reload();
+      gyroSignOut();
     });
   }
 }
+
+// ── Utilidad de cierre de sesión ───────────────────────────────────────────
+function clearGyroSession() {
+  localStorage.removeItem('gyro_admin_logged_in');
+  localStorage.removeItem('gyro_admin_dev_mode');
+  localStorage.removeItem('gyro_user_name');
+  localStorage.removeItem('gyro_user_photo');
+  localStorage.removeItem('gyro_user_role');
+  localStorage.removeItem('gyro_last_activity');
+  sessionStorage.removeItem('gyro_welcome_shown');
+}
+
+function gyroSignOut(reason) {
+  clearGyroSession();
+  // Redirigir a admin.html con ?logout=true para que admin.js llame a Firebase signOut()
+  const hint = reason ? `&reason=${reason}` : '';
+  window.location.href = `admin.html?logout=true${hint}`;
+}
+
+// ── Guardia de inactividad (30 minutos) ────────────────────────────────────
+(function initInactivityGuard() {
+  const TIMEOUT_MS   = 30 * 60 * 1000; // 30 minutos
+  const CHECK_MS     = 60 * 1000;      // revisar cada minuto
+  const ACTIVITY_KEY = 'gyro_last_activity';
+  const ADMIN_PAGES  = ['admin.html', 'vendedor.html', 'analytics.html', 'usuarios.html'];
+
+  const page = window.location.pathname.split('/').pop() || 'index.html';
+  if (!ADMIN_PAGES.includes(page)) return; // solo portales admin
+
+  function bump() {
+    localStorage.setItem(ACTIVITY_KEY, Date.now().toString());
+  }
+
+  function check() {
+    const last = parseInt(localStorage.getItem(ACTIVITY_KEY) || '0', 10);
+    if (last && Date.now() - last > TIMEOUT_MS) {
+      gyroSignOut('inactivity');
+    }
+  }
+
+  // Inicializar timestamp al cargar la página
+  bump();
+
+  // Resetear en cualquier interacción del usuario
+  ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(ev =>
+    document.addEventListener(ev, bump, { passive: true }));
+
+  // Revisar periódicamente
+  setInterval(check, CHECK_MS);
+})();

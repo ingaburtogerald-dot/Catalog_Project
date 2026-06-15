@@ -14,6 +14,9 @@ let auth = null;
 let currentPurchaseForEdit = null;
 let currentUserInfo = null;
 let allPurchases = [];
+let activePurchasesTab = 'all';
+let currentPurchaseForReview = null;
+let discardPurchaseId = null;
 
 let excelFilters = {
   purchases: { lote: null, code: null, date: null, product: null },
@@ -27,6 +30,27 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = (n) => `${CONFIG.currency}${Number(n).toFixed(2)}`;
 const $ = (s, c = document) => c.querySelector(s);
+
+function switchTab(target) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  const tabBtn = $(`.tab[data-tab="${target}"]`);
+  if (tabBtn) tabBtn.classList.add('active');
+
+  $('#tab-stock').classList.toggle('hidden', target !== 'stock');
+  $('#tab-products').classList.toggle('hidden', target !== 'products');
+  $('#tab-orders').classList.toggle('hidden', target !== 'orders');
+  $('#tab-purchases').classList.toggle('hidden', target !== 'purchases');
+}
+
+window.updateFilledInputs = function() {
+  document.querySelectorAll('.grid-form input, .grid-form select, .grid-form textarea').forEach(el => {
+    if (el.value !== undefined && el.value !== null && el.value.toString().trim() !== '') {
+      el.classList.add('filled-input');
+    } else {
+      el.classList.remove('filled-input');
+    }
+  });
+};
 
 function parseCustomTimestamp(ts) {
   if (!ts) return null;
@@ -97,7 +121,7 @@ async function api(path, options = {}) {
   } else if (auth && auth.currentUser) {
     headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
   }
-  const res = await fetch(`${API}${path}`, { ...options, headers });
+  const res = await fetch(`${API}${path}`, { cache: 'no-store', ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body.error || `HTTP ${res.status}`);
@@ -120,8 +144,8 @@ function toast(msg) {
 /* ============================================================
    Productos
    ============================================================ */
-async function loadProducts() {
-  const products = await api('/products?all=true');
+async function loadProducts(cachedProducts = null) {
+  const products = cachedProducts || await api('/products?all=true');
   $('#product-count').textContent = products.length;
   $('#products-tbody').innerHTML = products.map((p) => `
     <tr>
@@ -154,6 +178,7 @@ function resetForm() {
   $('#p-id').value = '';
   $('#form-title').textContent = 'Nuevo producto';
   $('#cancel-edit').classList.add('hidden');
+  window.updateFilledInputs();
 }
 
 function startEdit(p) {
@@ -169,6 +194,7 @@ function startEdit(p) {
   $('#form-title').textContent = `Editar: ${p.name}`;
   $('#cancel-edit').classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.updateFilledInputs();
 }
 
 async function submitProduct(e) {
@@ -256,15 +282,16 @@ async function updateOrderStatus(id, status) {
 /* ============================================================
    Compras de China
    ============================================================ */
-async function loadPurchases() {
+async function loadPurchases(cachedPurchases = null) {
   try {
-    allPurchases = await api('/purchases');
+    allPurchases = cachedPurchases || await api('/purchases');
     applyPurchasesFilters();
   } catch (err) { toast(`Error al cargar compras: ${err.message}`); }
 }
 
 function applyPurchasesFilters() {
-  const filtered = allPurchases.filter((p) => {
+  // Calcular conteos antes de aplicar el filtro de la pestaña activa
+  const baseFiltered = allPurchases.filter((p) => {
     if (excelFilters.purchases.lote && !excelFilters.purchases.lote.has(String(p.lote || ''))) return false;
     if (excelFilters.purchases.code && !excelFilters.purchases.code.has(String(p.code || ''))) return false;
     if (excelFilters.purchases.date && !excelFilters.purchases.date.has(String(p.date || ''))) return false;
@@ -272,11 +299,31 @@ function applyPurchasesFilters() {
     return true;
   });
 
+  const countAll = baseFiltered.length;
+  const countTransit = baseFiltered.filter(p => p.status === 'En tránsito' || p.status === 'Pedido').length;
+  const countReceived = baseFiltered.filter(p => p.status === 'Recibido').length;
+
+  const purchasesAllEl = $('#purchases-all-count');
+  if (purchasesAllEl) purchasesAllEl.textContent = countAll;
+  const purchasesTransitEl = $('#purchases-transit-count');
+  if (purchasesTransitEl) purchasesTransitEl.textContent = countTransit;
+  const purchasesReceivedEl = $('#purchases-received-count');
+  if (purchasesReceivedEl) purchasesReceivedEl.textContent = countReceived;
+
+  // Filtrar ahora sí aplicando la pestaña activa
+  const filtered = baseFiltered.filter((p) => {
+    if (activePurchasesTab === 'transit' && p.status !== 'En tránsito' && p.status !== 'Pedido') return false;
+    if (activePurchasesTab === 'received' && p.status !== 'Recibido') return false;
+    return true;
+  });
+
   $('#purchases-tbody').innerHTML = filtered.map((p) => {
     const date = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('es-NI') : '—';
     const statusClass = p.status === 'Recibido' ? 'status-delivered' : p.status === 'En tránsito' ? 'status-paid' : 'status-pending';
     const preTotal = p.qty * p.cost;
-    const impTotal = p.qty * p.tax;
+    const impTotal = p.qty * (p.tax || 0);
+    const unitCost = p.cost + (p.tax || 0);
+    const totalUsd = p.qty * unitCost;
     return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
       <td class="col-select"><input type="checkbox" class="purchase-select" data-id="${p.id}" /></td>
       <td><strong>${esc(p.lote)}</strong></td>
@@ -285,23 +332,41 @@ function applyPurchasesFilters() {
       <td>${esc(p.product)}</td>
       <td>${p.qty}</td>
       <td>$${p.cost.toFixed(2)}</td>
-      <td>$${p.tax.toFixed(4)}</td>
-      <td><strong>$${p.unitCost.toFixed(4)}</strong></td>
+      <td>$${(p.tax || 0).toFixed(4)}</td>
+      <td><strong>$${unitCost.toFixed(4)}</strong></td>
       <td>$${preTotal.toFixed(2)}</td>
-      <td>$${impTotal.toFixed(2)}</td>
-      <td><strong style="color: var(--accent);">$${p.totalUsd.toFixed(2)}</strong></td>
+      <td>$${impTotal.toFixed(4)}</td>
+      <td><strong style="color: var(--accent);">$${totalUsd.toFixed(2)}</strong></td>
       <td><span class="status-pill ${statusClass}">${esc(p.status)}</span></td>
     </tr>`;
   }).join('') || '<tr><td colspan="13" class="muted-note">No se encontraron compras con los filtros seleccionados.</td></tr>';
 
+  // Calcular y actualizar los totales en el pie de tabla
+  let totalPre = 0;
+  let totalImp = 0;
+  let totalUsd = 0;
+  filtered.forEach((p) => {
+    totalPre += p.qty * p.cost;
+    totalImp += p.qty * (p.tax || 0);
+    totalUsd += p.qty * (p.cost + (p.tax || 0));
+  });
+
+  const totalPreEl = $('#purchases-total-pre');
+  if (totalPreEl) totalPreEl.textContent = `$${totalPre.toFixed(2)}`;
+  const totalImpEl = $('#purchases-total-imp');
+  if (totalImpEl) totalImpEl.textContent = `$${totalImp.toFixed(4)}`;
+  const totalUsdEl = $('#purchases-total-usd');
+  if (totalUsdEl) totalUsdEl.textContent = `$${totalUsd.toFixed(2)}`;
+
   const selectAll = $('#select-all-purchases');
   if (selectAll) selectAll.checked = false;
   updateBulkActionsBar();
+  updateNotifications();
 }
 
-async function loadStock() {
+async function loadStock(cachedPurchases = null) {
   try {
-    const purchases = await api('/purchases');
+    const purchases = cachedPurchases || await api('/purchases');
     allPurchases = purchases;
     applyStockFilters();
   } catch (err) {
@@ -318,19 +383,273 @@ function applyStockFilters() {
     return true;
   });
 
-  $('#stock-tbody').innerHTML = filtered.map((p) => {
+  const approvedStock = filtered.filter(p => p.approved === true);
+  const pendingStock = filtered.filter(p => p.approved === false || p.approved === undefined);
+
+  // Update badge and text counts
+  const countApproved = $('#stock-approved-count');
+  if (countApproved) countApproved.textContent = approvedStock.length;
+  const countPending = $('#stock-pending-count');
+  if (countPending) countPending.textContent = pendingStock.length;
+
+  // Render Approved Stock
+  $('#stock-tbody').innerHTML = approvedStock.map((p) => {
     const unitCostVal = typeof p.unitCost === 'number' ? p.unitCost : 0;
     const totalUsdVal = typeof p.totalUsd === 'number' ? p.totalUsd : (p.qty * unitCostVal);
+    const dateStr = p.receiveDate ? new Date(p.receiveDate + 'T00:00:00').toLocaleDateString('es-NI') : '—';
+    const days = p.receiveDate && p.date ? Math.ceil((new Date(p.receiveDate) - new Date(p.date)) / (1000 * 60 * 60 * 24)) : null;
+    const daysText = days !== null ? `${days} días` : '—';
 
     return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
-      <td><strong>${esc(p.lote)}</strong></td>
-      <td><span class="muted-note">${esc(p.code || '—')}</span></td>
+      <td class="col-select"><input type="checkbox" class="stock-select" data-id="${p.id}" /></td>
+      <td><strong>${esc(p.code || '—')}</strong></td>
       <td>${esc(p.product)}</td>
-      <td>${p.qty}</td>
-      <td><strong>$${unitCostVal.toFixed(4)}</strong></td>
-      <td><strong style="color: var(--accent);">$${totalUsdVal.toFixed(2)}</strong></td>
+      <td class="text-right">${dateStr}</td>
+      <td class="text-right">${daysText}</td>
+      <td class="text-right">${p.qty}</td>
+      <td class="text-right">$${(p.shipping || 0).toFixed(4)}</td>
+      <td class="text-right"><strong>$${unitCostVal.toFixed(4)}</strong></td>
+      <td class="text-right"><strong style="color: var(--accent);">$${totalUsdVal.toFixed(2)}</strong></td>
+      <td class="text-right" style="color: #10b981;">C$${p.totalNio.toFixed(2)}</td>
+      <td class="text-right" style="color: #6366f1;">C$${Math.ceil(unitCostVal * p.exchangeRate * 1.40)}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" class="muted-note">No se encontraron productos en stock con los filtros seleccionados.</td></tr>';
+  }).join('') || '<tr><td colspan="11" class="muted-note">No se encontraron productos en stock con los filtros seleccionados.</td></tr>';
+
+  // Render Pending Stock
+  $('#stock-pending-tbody').innerHTML = pendingStock.map((p) => {
+    return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
+      <td><strong>${esc(p.code || '—')}</strong></td>
+      <td>${esc(p.product)}</td>
+      <td class="text-right">${p.qty}</td>
+      <td class="text-right">$${(p.shipping || 0).toFixed(4)}</td>
+      <td class="text-right"><strong>$${p.unitCost.toFixed(4)}</strong></td>
+      <td class="text-right">$${p.totalUsd.toFixed(2)}</td>
+      <td class="text-right"><strong style="color: var(--accent);">$${p.totalNio.toFixed(2)}</strong></td>
+      <td class="text-right" style="color: #10b981;">C$${Math.ceil(p.unitCost * p.exchangeRate * 1.40)}</td>
+      <td class="text-center row-actions">
+        <button type="button" class="edit-btn btn-review-approve" data-id="${p.id}" style="margin: 0; padding: 6px 12px; font-weight:700;">Aprobar</button>
+        <button type="button" class="del-btn btn-review-discard" data-id="${p.id}" style="margin: 0; padding: 6px 12px; font-weight:700;">Descartar</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" class="muted-note">No hay productos recibidos pendientes de aprobación.</td></tr>';
+
+  // Calculate totals for Approved Stock
+  let totalUsdApproved = 0;
+  let totalNioApproved = 0;
+  approvedStock.forEach(p => {
+    totalUsdApproved += p.totalUsd || 0;
+    totalNioApproved += p.totalNio || 0;
+  });
+  const totalUsdEl = $('#stock-total-usd');
+  if (totalUsdEl) totalUsdEl.textContent = `$${totalUsdApproved.toFixed(2)}`;
+  const totalNioEl = $('#stock-total-nio');
+  if (totalNioEl) totalNioEl.textContent = `C$${totalNioApproved.toFixed(2)}`;
+
+  // Calculate totals for Pending Stock
+  let totalUsdPending = 0;
+  let totalNioPending = 0;
+  pendingStock.forEach(p => {
+    totalUsdPending += p.totalUsd || 0;
+    totalNioPending += p.totalNio || 0;
+  });
+  const pendingTotalUsdEl = $('#stock-pending-total-usd');
+  if (pendingTotalUsdEl) pendingTotalUsdEl.textContent = `$${totalUsdPending.toFixed(2)}`;
+  const pendingTotalNioEl = $('#stock-pending-total-nio');
+  if (pendingTotalNioEl) pendingTotalNioEl.textContent = `C$${totalNioPending.toFixed(2)}`;
+
+  // Reset stock select all checkbox and bulk actions bar
+  const selectAll = $('#select-all-stock');
+  if (selectAll) selectAll.checked = false;
+  updateStockBulkActionsBar();
+  updateNotifications();
+}
+
+/* ============================================================
+   Aprobaciones y Revisiones de Stock
+   ============================================================ */
+function updateStockBulkActionsBar() {
+  const selected = document.querySelectorAll('.stock-select:checked');
+  const bar = $('#stock-bulk-actions');
+  if (!bar) return;
+
+  const countEl = $('#stock-bulk-select-count');
+  if (countEl) countEl.textContent = selected.length;
+
+  if (selected.length > 0) {
+    bar.classList.remove('hidden');
+    
+    // Enable buttons only if exactly 1 is selected
+    const editBtn = $('#btn-stock-bulk-edit');
+    const discardBtn = $('#btn-stock-bulk-discard');
+    
+    if (editBtn) {
+      editBtn.disabled = (selected.length !== 1);
+      editBtn.style.opacity = (selected.length === 1) ? '1' : '0.5';
+      editBtn.style.cursor = (selected.length === 1) ? 'pointer' : 'not-allowed';
+    }
+    if (discardBtn) {
+      discardBtn.disabled = (selected.length !== 1);
+      discardBtn.style.opacity = (selected.length === 1) ? '1' : '0.5';
+      discardBtn.style.cursor = (selected.length === 1) ? 'pointer' : 'not-allowed';
+    }
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function updateNotifications() {
+  const received = allPurchases.filter(p => p.status === 'Recibido');
+  const pendingApproval = received.filter(p => p.approved === false || p.approved === undefined);
+
+  const badge = $('#notif-badge');
+  if (badge) {
+    badge.textContent = pendingApproval.length;
+    if (pendingApproval.length > 0) {
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  const list = $('#notif-items-list');
+  if (list) {
+    if (pendingApproval.length === 0) {
+      list.innerHTML = `<div class="notif-empty">No hay notificaciones pendientes.</div>`;
+    } else {
+      list.innerHTML = pendingApproval.map(p => `
+        <div class="notif-item" data-id="${p.id}">
+          <div class="notif-item-title">Pendiente de Aprobación</div>
+          <div class="notif-item-desc">${esc(p.product)}</div>
+          <div class="notif-item-meta">
+            <span>Cant: ${p.qty}</span>
+            <span>Lote: ${esc(p.lote || '—')}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function openReviewModal(p) {
+  currentPurchaseForReview = p;
+  $('#review-pur-id').value = p.id;
+
+  const modalTitle = $('#purchase-review-modal-title');
+  const submitBtn = $('#purchase-review-form button[type="submit"]');
+  const reviewDiscardBtn = $('#review-discard-btn');
+
+  if (p.approved === true) {
+    $('#review-pur-date').value = p.receiveDate ? p.receiveDate : '';
+    $('#review-pur-shipping').value = p.shipping || 0;
+    if (modalTitle) modalTitle.textContent = 'Editar Stock';
+    if (submitBtn) submitBtn.textContent = 'Guardar Cambios';
+    if (reviewDiscardBtn) reviewDiscardBtn.classList.remove('hidden');
+  } else {
+    $('#review-pur-date').value = '';
+    $('#review-pur-shipping').value = '';
+    if (modalTitle) modalTitle.textContent = 'Revisar Ingreso a Bodega';
+    if (submitBtn) submitBtn.textContent = 'Aprobar e Ingresar';
+    if (reviewDiscardBtn) reviewDiscardBtn.classList.add('hidden');
+  }
+
+  $('#purchase-review-modal').classList.remove('hidden');
+  window.updateFilledInputs();
+}
+
+function closeReviewModal() {
+  $('#purchase-review-modal').classList.add('hidden');
+  currentPurchaseForReview = null;
+}
+
+async function submitReviewForm(e) {
+  e.preventDefault();
+  const id = $('#review-pur-id').value;
+  const receiveDate = $('#review-pur-date').value;
+  const shipping = parseFloat($('#review-pur-shipping').value) || 0;
+
+  try {
+    const p = currentPurchaseForReview;
+    const payload = {
+      ...p,
+      receiveDate,
+      shipping,
+      approved: true,
+      status: 'Recibido'
+    };
+
+    await api(`/purchases/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (p && p.approved === true) {
+      toast('Stock actualizado correctamente.');
+    } else {
+      toast('Producto aprobado e ingresado a bodega.');
+    }
+    closeReviewModal();
+    await loadStock();
+    await loadPurchases();
+  } catch (err) {
+    toast(`Error al aprobar: ${err.message}`);
+  }
+}
+
+function openDiscardModal(id) {
+  discardPurchaseId = id;
+  $('#discard-reason-input').value = '';
+  $('#discard-prompt-modal').classList.remove('hidden');
+  window.updateFilledInputs();
+}
+
+function closeDiscardModal() {
+  $('#discard-prompt-modal').classList.add('hidden');
+  discardPurchaseId = null;
+}
+
+async function submitDiscard() {
+  const reason = $('#discard-reason-input').value.trim();
+  if (!reason) return toast('El motivo es obligatorio.');
+
+  try {
+    const id = discardPurchaseId;
+    const p = allPurchases.find(x => x.id === id);
+    if (!p) return toast('No se encontró el producto a descartar.');
+
+    let comments = [];
+    try {
+      comments = JSON.parse(p.notes || '[]');
+    } catch {
+      if (p.notes) comments = [{ text: p.notes, userName: 'Admin', userPhoto: '', timestamp: 'Fecha anterior' }];
+    }
+    comments.push({
+      text: `Producto descartado. Motivo: ${reason}`,
+      userName: currentUserInfo?.displayName || 'Admin',
+      userPhoto: currentUserInfo?.photoURL || '',
+      timestamp: formatFriendlyDate(new Date())
+    });
+
+    const payload = {
+      ...p,
+      status: 'En tránsito',
+      approved: false,
+      notes: JSON.stringify(comments)
+    };
+
+    await api(`/purchases/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    toast('Producto devuelto a estado "En tránsito".');
+    closeDiscardModal();
+    await loadStock();
+    await loadPurchases();
+  } catch (err) {
+    toast(`Error al descartar: ${err.message}`);
+  }
 }
 
 function openExcelFilterPopover(table, col, btn) {
@@ -379,7 +698,7 @@ function openExcelFilterPopover(table, col, btn) {
       return timeA - timeB;
     });
   } else {
-    uniquePairs.sort((a, b) => a[1].localeCompare(b[1]));
+    uniquePairs.sort((a, b) => a[1].localeCompare(b[1], undefined, { numeric: true, sensitivity: 'base' }));
   }
 
   const activeSet = excelFilters[table][col];
@@ -921,10 +1240,12 @@ function toggleModalComments() {
 function openBulkEditModal(count) {
   $('#bulk-edit-status').value = '';
   updateSelectStatusColor($('#bulk-edit-status'));
-  $('#bulk-edit-rate').value = '';
+  const rateInput = $('#bulk-edit-rate');
+  if (rateInput) rateInput.value = '';
   $('#bulk-edit-lote').value = '';
   $('#bulk-edit-count-label').textContent = count;
   $('#purchase-bulk-edit-modal').classList.remove('hidden');
+  window.updateFilledInputs();
 }
 
 function closeBulkEditModal() {
@@ -937,7 +1258,8 @@ async function submitBulkEdit(e) {
   if (checked.length === 0) return;
 
   const targetStatus = $('#bulk-edit-status').value;
-  const targetRate = $('#bulk-edit-rate').value.trim();
+  const rateInput = $('#bulk-edit-rate');
+  const targetRate = rateInput ? rateInput.value.trim() : '';
   const targetLote = $('#bulk-edit-lote').value.trim();
 
   if (!targetStatus && !targetRate && !targetLote) {
@@ -959,7 +1281,7 @@ async function submitBulkEdit(e) {
       cost: p.cost,
       tax: p.tax,
       exchangeRate: targetRate ? parseFloat(targetRate) : p.exchangeRate,
-      status: targetStatus ? targetStatus : p.status,
+      status: (targetStatus && p.status !== 'Recibido') ? targetStatus : p.status,
       notes: p.notes
     };
 
@@ -1016,23 +1338,17 @@ function openEditPurchaseModal(p, autoShowComments = true) {
     submitBtn.textContent = 'Registrar Compra';
 
     $('#edit-pur-id').value = '';
-
-    let lastLote = 'LT1';
-    const firstRow = document.querySelector('#purchases-tbody tr');
-    if (firstRow) {
-      const firstRowLote = firstRow.querySelector('td:nth-child(2)')?.textContent;
-      if (firstRowLote) lastLote = firstRowLote.trim();
-    }
-    $('#edit-pur-lote').value = lastLote;
-
+    $('#edit-pur-lote').value = '';
     $('#edit-pur-code').value = '';
-    $('#edit-pur-date').value = new Date().toISOString().split('T')[0];
+    $('#edit-pur-date').value = '';
     $('#edit-pur-product').value = '';
-    $('#edit-pur-qty').value = 1;
-    $('#edit-pur-cost').value = 0;
-    $('#edit-pur-tax').value = 0;
-    $('#edit-pur-rate').value = 37.00;
-    $('#edit-pur-status').value = 'Recibido';
+    $('#edit-pur-qty').value = '';
+    $('#edit-pur-cost').value = '';
+    $('#edit-pur-tax').value = '';
+    const rateInput = $('#edit-pur-rate');
+    if (rateInput) rateInput.value = 37.00;
+    $('#edit-pur-status').value = 'En tránsito';
+    $('#edit-pur-status').disabled = true;
     $('#edit-pur-notes').value = '[]';
 
     modalContent.classList.remove('show-comments-pane');
@@ -1050,8 +1366,10 @@ function openEditPurchaseModal(p, autoShowComments = true) {
     $('#edit-pur-qty').value = p.qty || 1;
     $('#edit-pur-cost').value = p.cost || 0;
     $('#edit-pur-tax').value = p.tax || 0;
-    $('#edit-pur-rate').value = p.exchangeRate || 37.00;
+    const rateInput = $('#edit-pur-rate');
+    if (rateInput) rateInput.value = p.exchangeRate || 37.00;
     $('#edit-pur-status').value = p.status || 'Pedido';
+    $('#edit-pur-status').disabled = (p.status === 'Recibido');
     $('#edit-pur-notes').value = p.notes || '';
 
     populateModalCommentsList(p.notes);
@@ -1069,6 +1387,7 @@ function openEditPurchaseModal(p, autoShowComments = true) {
 
   updateSelectStatusColor($('#edit-pur-status'));
   $('#purchase-edit-modal').classList.remove('hidden');
+  window.updateFilledInputs();
 }
 
 function closeEditPurchaseModal() {
@@ -1089,7 +1408,8 @@ async function submitModalPurchase(e) {
   const qty = parseInt($('#edit-pur-qty').value) || 1;
   const cost = parseFloat($('#edit-pur-cost').value) || 0;
   const tax = parseFloat($('#edit-pur-tax').value) || 0;
-  const rate = parseFloat($('#edit-pur-rate').value) || 37.00;
+  const rateInput = $('#edit-pur-rate');
+  const rate = rateInput ? (parseFloat(rateInput.value) || 37.00) : 37.00;
   const status = $('#edit-pur-status').value;
   const notes = $('#edit-pur-notes').value.trim() || '[]';
 
@@ -1213,19 +1533,41 @@ async function showPanel(user) {
     return;
   }
 
+  // Ocultar login y asegurar que se muestra pantalla de carga
   $('#login-view').classList.add('hidden');
   const loadingView = $('#loading-view');
+  if (loadingView) loadingView.classList.remove('hidden');
+  $('#panel-view').classList.add('hidden');
+
+  // Fetch config, products, and purchases in parallel to optimize load time
+  const [configData, productsData, purchasesData] = await Promise.all([
+    api('/config'),
+    api('/products?all=true'),
+    api('/purchases')
+  ]);
+
+  CONFIG = configData;
+  fillCategorySelect();
+
+  // Populate global purchases and render initial tables
+  allPurchases = purchasesData;
+  await loadProducts(productsData);
+  applyPurchasesFilters();
+  applyStockFilters();
+
+  // Restore active tab
+  const activeTab = localStorage.getItem('gyro_admin_active_tab') || 'purchases';
+  switchTab(activeTab);
+
+  if (activeTab === 'orders') {
+    await loadOrders();
+  }
+
+  // Una vez cargado todo y establecida la pestaña activa, ocultamos pantalla de carga y mostramos el panel
   if (loadingView) loadingView.classList.add('hidden');
   $('#panel-view').classList.remove('hidden');
   $('#user-email').textContent = user.email;
   $('#user-photo').src = user.photoURL || 'assets/img/Gyro_Store_logo.jpeg';
-
-  CONFIG = await api('/config');
-  fillCategorySelect();
-  await loadProducts();
-  await loadPurchases();
-
-  // Inicializa valores por defecto del formulario de compras (ya no estático)
 }
 
 /* ============================================================
@@ -1237,12 +1579,19 @@ async function init() {
   document.body.setAttribute('data-theme', savedTheme);
 
   // Listeners de UI (no dependen de auth)
-  $('#product-form').addEventListener('submit', submitProduct);
-  $('#cancel-edit').addEventListener('click', resetForm);
+  $('#product-form')?.addEventListener('submit', submitProduct);
+  $('#cancel-edit')?.addEventListener('click', resetForm);
 
-  $('#purchase-edit-form').addEventListener('submit', submitModalPurchase);
-  $('#modal-comments-form').addEventListener('submit', submitModalComment);
-  $('#purchase-bulk-edit-form').addEventListener('submit', submitBulkEdit);
+  document.addEventListener('input', (e) => {
+    if (e.target.closest('.grid-form')) window.updateFilledInputs();
+  });
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('.grid-form')) window.updateFilledInputs();
+  });
+
+  $('#purchase-edit-form')?.addEventListener('submit', submitModalPurchase);
+  $('#modal-comments-form')?.addEventListener('submit', submitModalComment);
+  $('#purchase-bulk-edit-form')?.addEventListener('submit', submitBulkEdit);
 
   const commentTextarea = $('#modal-comment-text');
   if (commentTextarea) {
@@ -1261,11 +1610,11 @@ async function init() {
 
 
 
-  $('#btn-bulk-delete').addEventListener('click', bulkDeletePurchases);
-  $('#btn-bulk-edit').addEventListener('click', handleToolbarEdit);
-  $('#btn-bulk-comment').addEventListener('click', handleToolbarComment);
+  $('#btn-bulk-delete')?.addEventListener('click', bulkDeletePurchases);
+  $('#btn-bulk-edit')?.addEventListener('click', handleToolbarEdit);
+  $('#btn-bulk-comment')?.addEventListener('click', handleToolbarComment);
 
-  $('#btn-toggle-comments').addEventListener('click', toggleModalComments);
+  $('#btn-toggle-comments')?.addEventListener('click', toggleModalComments);
 
   // Close modal button configurations
   const modalCloseActions = [
@@ -1284,10 +1633,10 @@ async function init() {
   // Listeners de Configuración
   const btnSettings = $('#btn-settings');
   if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
-  $('#settings-form').addEventListener('submit', submitSettings);
+  $('#settings-form')?.addEventListener('submit', submitSettings);
 
-  $('#edit-pur-status').addEventListener('change', (e) => updateSelectStatusColor(e.target));
-  $('#bulk-edit-status').addEventListener('change', (e) => updateSelectStatusColor(e.target));
+  $('#edit-pur-status')?.addEventListener('change', (e) => updateSelectStatusColor(e.target));
+  $('#bulk-edit-status')?.addEventListener('change', (e) => updateSelectStatusColor(e.target));
 
   const btnLogout = $('#btn-logout');
   if (btnLogout) {
@@ -1334,18 +1683,35 @@ async function init() {
 
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-      tab.classList.add('active');
       const target = tab.dataset.tab;
-      $('#tab-stock').classList.toggle('hidden', target !== 'stock');
-      $('#tab-products').classList.toggle('hidden', target !== 'products');
-      $('#tab-orders').classList.toggle('hidden', target !== 'orders');
-      $('#tab-purchases').classList.toggle('hidden', target !== 'purchases');
+      switchTab(target);
+      localStorage.setItem('gyro_admin_active_tab', target);
       if (target === 'orders') loadOrders();
       if (target === 'purchases') loadPurchases();
       if (target === 'stock') loadStock();
     });
   });
+
+  document.querySelectorAll('[data-stock-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('[data-stock-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const isPending = btn.dataset.stockTab === 'pending';
+      $('#stock-pane-approved').classList.toggle('hidden', isPending);
+      $('#stock-pane-pending').classList.toggle('hidden', !isPending);
+    });
+  });
+
+  document.querySelectorAll('[data-purchases-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('[data-purchases-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePurchasesTab = btn.dataset.purchasesTab;
+      applyPurchasesFilters();
+    });
+  });
+
+  $('#purchase-review-form')?.addEventListener('submit', submitReviewForm);
 
   document.addEventListener('click', (e) => {
     // Cerrar el popover de filtro si se hace clic fuera de él y de los triggers
@@ -1365,17 +1731,41 @@ async function init() {
     const deleteComment = e.target.closest('.delete-comment-btn');
     const commentMenuBtn = e.target.closest('.comment-menu-btn');
 
+    const btnNotifications = e.target.closest('#btn-notifications');
+    const notifItem = e.target.closest('.notif-item');
+
+    const btnReviewApprove = e.target.closest('.btn-review-approve');
+    const btnReviewDiscard = e.target.closest('.btn-review-discard');
+    const reviewDiscardBtn = e.target.closest('#review-discard-btn');
+    const closeReviewModalBtn = e.target.closest('#close-review-modal-btn');
+    const cancelReviewBtn = e.target.closest('#cancel-review-btn');
+    const cancelDiscardBtn = e.target.closest('#cancel-discard-btn');
+    const confirmDiscardBtn = e.target.closest('#confirm-discard-btn');
+
     // Cerrar menús de comentarios si se hace clic fuera
     if (!e.target.closest('.comment-menu-container')) {
       document.querySelectorAll('.comment-menu-dropdown').forEach(d => d.classList.add('hidden'));
     }
 
+    // Cerrar menú de notificaciones si se hace clic fuera
+    if (!e.target.closest('#btn-notifications') && !e.target.closest('#notifications-dropdown')) {
+      $('#notifications-dropdown')?.classList.add('hidden');
+    }
+
+    const btnStockBulkEdit = e.target.closest('#btn-stock-bulk-edit');
+    const btnStockBulkDiscard = e.target.closest('#btn-stock-bulk-discard');
+
     const clickableRow = e.target.closest('.clickable-row');
-    if (clickableRow && !editPurchase && !delPurchase && !closeModal) {
-      if (!e.target.closest('.purchase-select') && !e.target.closest('button') && !e.target.closest('a') && !e.target.closest('input')) {
+    if (clickableRow && !editPurchase && !delPurchase && !closeModal && !btnReviewApprove && !btnReviewDiscard && !btnStockBulkEdit && !btnStockBulkDiscard) {
+      if (!e.target.closest('.purchase-select') && !e.target.closest('.stock-select') && !e.target.closest('button') && !e.target.closest('a') && !e.target.closest('input')) {
         const purchaseData = clickableRow.dataset.purchase;
         if (purchaseData) {
-          openEditPurchaseModal(JSON.parse(purchaseData));
+          const parsed = JSON.parse(purchaseData);
+          if (clickableRow.closest('#stock-table') || clickableRow.closest('#stock-pending-table')) {
+            openReviewModal(parsed);
+          } else {
+            openEditPurchaseModal(parsed);
+          }
         }
       }
     }
@@ -1394,6 +1784,57 @@ async function init() {
     }
     if (closeModal) {
       closeEditPurchaseModal();
+    }
+    if (btnReviewApprove) {
+      const tr = btnReviewApprove.closest('tr');
+      const p = JSON.parse(tr.dataset.purchase);
+      openReviewModal(p);
+    }
+    if (btnReviewDiscard) {
+      openDiscardModal(btnReviewDiscard.dataset.id);
+    }
+    if (btnNotifications) {
+      e.stopPropagation();
+      $('#notifications-dropdown')?.classList.toggle('hidden');
+    }
+    if (notifItem) {
+      const id = notifItem.dataset.id;
+      const p = allPurchases.find(x => x.id === id);
+      if (p) {
+        $('#notifications-dropdown')?.classList.add('hidden');
+        openReviewModal(p);
+      }
+    }
+    if (reviewDiscardBtn) {
+      if (currentPurchaseForReview) {
+        const id = currentPurchaseForReview.id;
+        closeReviewModal();
+        openDiscardModal(id);
+      }
+    }
+    if (btnStockBulkEdit) {
+      const selected = document.querySelectorAll('.stock-select:checked');
+      if (selected.length === 1) {
+        const id = selected[0].dataset.id;
+        const p = allPurchases.find(x => x.id === id);
+        if (p) openReviewModal(p);
+      }
+    }
+    if (btnStockBulkDiscard) {
+      const selected = document.querySelectorAll('.stock-select:checked');
+      if (selected.length === 1) {
+        const id = selected[0].dataset.id;
+        openDiscardModal(id);
+      }
+    }
+    if (closeReviewModalBtn || cancelReviewBtn) {
+      closeReviewModal();
+    }
+    if (cancelDiscardBtn) {
+      closeDiscardModal();
+    }
+    if (confirmDiscardBtn) {
+      submitDiscard();
     }
     if (editComment) {
       const idx = parseInt(editComment.dataset.index);
@@ -1454,6 +1895,35 @@ async function init() {
       });
       updateBulkActionsBar();
     }
+
+    const stockCb = e.target.closest('.stock-select');
+    if (stockCb) {
+      const tr = stockCb.closest('tr');
+      if (tr) {
+        tr.classList.toggle('selected-row', stockCb.checked);
+      }
+      updateStockBulkActionsBar();
+
+      const checkboxes = document.querySelectorAll('.stock-select');
+      const allChecked = Array.from(checkboxes).every(x => x.checked);
+      const noneChecked = Array.from(checkboxes).every(x => !x.checked);
+      const selectAllStock = $('#select-all-stock');
+      if (selectAllStock) {
+        selectAllStock.checked = allChecked;
+        selectAllStock.indeterminate = !allChecked && !noneChecked;
+      }
+    }
+
+    const selectAllStockCb = e.target.closest('#select-all-stock');
+    if (selectAllStockCb) {
+      const checked = selectAllStockCb.checked;
+      document.querySelectorAll('.stock-select').forEach((cb) => {
+        cb.checked = checked;
+        const tr = cb.closest('tr');
+        if (tr) tr.classList.toggle('selected-row', checked);
+      });
+      updateStockBulkActionsBar();
+    }
   });
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -1494,37 +1964,62 @@ async function init() {
                   /^169\.254\.\d+\.\d+$/.test(window.location.hostname);
                   
   if (isLocal) {
-    const btnDev = $('#btn-dev-login');
-    if (btnDev) {
+    const btnDev   = $('#btn-dev-login');
+    const devModal = $('#dev-login-modal');
+
+    if (btnDev && devModal) {
       btnDev.classList.remove('hidden');
-      btnDev.addEventListener('click', () => {
-        const fromParam = urlParams.get('from');
-        localStorage.setItem('gyro_admin_dev_mode', 'true');
-        window.location.search = `?dev=true${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
+
+      const openModal  = () => { devModal.style.display = 'grid'; $('#dev-login-password').focus(); };
+      const closeModal = () => {
+        devModal.style.display = 'none';
+        $('#dev-login-password').value = '';
+        $('#dev-login-error').style.display = 'none';
+      };
+
+      btnDev.addEventListener('click', openModal);
+      $('#dev-modal-close').addEventListener('click', closeModal);
+      devModal.addEventListener('click', e => {
+        e.stopPropagation();
+        if (e.target === devModal) closeModal();
       });
 
-      // Insertar información de las credenciales locales de prueba
-      let devInfo = document.getElementById('dev-credentials-info');
-      if (!devInfo) {
-        devInfo = document.createElement('div');
-        devInfo.id = 'dev-credentials-info';
-        devInfo.style.marginTop = '15px';
-        devInfo.style.padding = '12px';
-        devInfo.style.background = 'rgba(124, 131, 255, 0.08)';
-        devInfo.style.border = '1px dashed rgba(124, 131, 255, 0.3)';
-        devInfo.style.borderRadius = '8px';
-        devInfo.style.fontSize = '12.5px';
-        devInfo.style.color = 'var(--text-soft)';
-        devInfo.style.textAlign = 'left';
-        devInfo.innerHTML = `
-          <p style="margin: 0 0 6px 0; font-weight: bold; color: var(--accent-soft); display: flex; align-items: center; gap: 4px;">
-            🔑 Credenciales Locales de Prueba:
-          </p>
-          <div style="margin: 4px 0;"><strong>Admin:</strong> dev-admin@gyrostore.com <br> <span style="color:var(--muted);">Contraseña:</span> /admin1</div>
-          <div style="margin: 4px 0; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 4px;"><strong>Vendedor:</strong> dev-seller@gyrostore.com <br> <span style="color:var(--muted);">Contraseña:</span> /seller1</div>
-        `;
-        btnDev.after(devInfo);
-      }
+      // Toggle mostrar/ocultar contraseña en el modal
+      $('#dev-pass-toggle').addEventListener('click', () => {
+        const inp  = $('#dev-login-password');
+        const icon = $('#dev-pass-icon');
+        const show = inp.type === 'password';
+        inp.type       = show ? 'text' : 'password';
+        icon.className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+      });
+
+      // Submit del modal → usa el form principal con Firebase
+      $('#dev-login-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const password  = $('#dev-login-password').value;
+        const errEl     = $('#dev-login-error');
+        const submitBtn = $('#dev-login-submit');
+
+        errEl.style.display = 'none';
+        submitBtn.disabled  = true;
+        submitBtn.textContent = 'Iniciando sesión...';
+
+        try {
+          await signInWithEmailAndPassword(auth, 'dev-admin@gyrostore.com', password);
+          closeModal();
+        } catch (err) {
+          let msg = 'Error al iniciar sesión.';
+          if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+            msg = 'Contraseña incorrecta.';
+          } else if (err.code === 'auth/too-many-requests') {
+            msg = 'Demasiados intentos. Espera un momento.';
+          }
+          errEl.textContent   = msg;
+          errEl.style.display = 'block';
+          submitBtn.disabled  = false;
+          submitBtn.textContent = 'Iniciar sesión';
+        }
+      });
     }
   }
 
@@ -1552,6 +2047,19 @@ async function init() {
     return;
   }
 
+  // Toggle mostrar/ocultar contraseña
+  const btnTogglePass = $('#btn-toggle-password');
+  if (btnTogglePass) {
+    btnTogglePass.addEventListener('click', () => {
+      const passInput = $('#login-password');
+      const icon      = $('#toggle-pass-icon');
+      if (!passInput) return;
+      const isHidden = passInput.type === 'password';
+      passInput.type = isHidden ? 'text' : 'password';
+      icon.className = isHidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    });
+  }
+
   const emailLoginForm = $('#email-login-form');
   if (emailLoginForm) {
     emailLoginForm.addEventListener('submit', async (e) => {
@@ -1560,26 +2068,6 @@ async function init() {
       const password = $('#login-password').value;
       const errorEl = $('#login-error');
       if (errorEl) errorEl.classList.add('hidden');
-
-      // Interceptar credenciales de desarrollador local
-      if (email === 'dev-admin@gyrostore.com' && password === '/admin1') {
-        console.log('Local Dev credentials used. Bypassing Firebase.');
-        localStorage.setItem('gyro_admin_dev_mode', 'true');
-        const urlParams = new URLSearchParams(window.location.search);
-        const fromParam = urlParams.get('from');
-        window.location.href = `admin.html?dev=true${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
-        return;
-      }
-
-      // Interceptar credenciales de vendedor local
-      if (email === 'dev-seller@gyrostore.com' && password === '/seller1') {
-        console.log('Local Seller credentials used. Bypassing Firebase.');
-        localStorage.setItem('gyro_admin_dev_mode', 'seller');
-        const urlParams = new URLSearchParams(window.location.search);
-        const fromParam = urlParams.get('from');
-        window.location.href = `vendedor.html?dev=seller${fromParam ? `&from=${encodeURIComponent(fromParam)}` : ''}`;
-        return;
-      }
 
       const submitBtn = emailLoginForm.querySelector('button[type="submit"]');
       const originalBtnText = submitBtn ? submitBtn.textContent : 'Iniciar sesión';

@@ -1,6 +1,6 @@
 /* ============================================================
-   GYRO STORE â€” Panel admin con login de Google (Firebase Auth)
-   La tienda es pÃºblica; este panel exige cuenta autorizada.
+   GYRO STORE — Analytics Dashboard
+   Panel de análisis de ventas y comisiones. Requiere cuenta autorizada.
    ============================================================ */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
@@ -11,18 +11,6 @@ import {
 const API = '/api';
 let CONFIG = { currency: 'C$', categories: [] };
 let auth = null;
-let currentPurchaseForEdit = null;
-let currentPurchaseForReview = null;
-let currentIsReviewMode = false;
-let currentUserInfo = null;
-let allPurchases = [];
-
-let excelFilters = {
-  purchases: { lote: null, code: null, date: null, product: null },
-  stock: { lote: null, code: null, product: null }
-};
-let currentFilterPopover = null; // { table, col, triggerBtn }
-
 
 /* ---------- utilidades ---------- */
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -71,28 +59,6 @@ function parseCustomTimestamp(ts) {
   return null;
 }
 
-window.updateFilledInputs = () => {
-  document.querySelectorAll('.grid-form input, .grid-form select, .grid-form textarea').forEach(el => {
-    if (el.value !== undefined && el.value !== null && el.value.toString().trim() !== '') {
-      el.style.setProperty('background-color', '#e8f0fe', 'important');
-      el.style.setProperty('color', '#0f172a', 'important');
-      el.style.setProperty('border-color', 'var(--accent)', 'important');
-      el.style.setProperty('font-weight', '700', 'important');
-    } else {
-      el.style.removeProperty('background-color');
-      el.style.removeProperty('color');
-      el.style.removeProperty('border-color');
-      el.style.removeProperty('font-weight');
-    }
-  });
-};
-
-document.addEventListener('input', (e) => {
-  if (e.target.closest('.grid-form')) window.updateFilledInputs();
-});
-document.addEventListener('change', (e) => {
-  if (e.target.closest('.grid-form')) window.updateFilledInputs();
-});
 
 function formatFriendlyDate(dateInput) {
   if (!dateInput) return 'Fecha anterior';
@@ -115,53 +81,6 @@ function formatFriendlyDate(dateInput) {
 
 async function api(path, options = {}) {
   const headers = { ...(options.headers || {}) };
-  // Controladores para el Menú Desplegable de Usuario
-  const btnSettings = $('#btn-settings');
-  const userMenu = $('#user-menu-dropdown');
-  if (btnSettings && userMenu) {
-    btnSettings.addEventListener('click', (e) => {
-      e.stopPropagation();
-      userMenu.classList.toggle('hidden');
-      const currentTheme = document.body.getAttribute('data-theme') || 'dark';
-      const themeSelect = $('#menu-theme-select');
-      if (themeSelect) themeSelect.value = currentTheme;
-    });
-    document.addEventListener('click', (e) => {
-      if (!userMenu.classList.contains('hidden') && !userMenu.contains(e.target) && e.target !== btnSettings) {
-        userMenu.classList.add('hidden');
-      }
-    });
-  }
-
-  // Cambio de Tema en el Menú
-  const themeSelect = $('#menu-theme-select');
-  if (themeSelect) {
-    themeSelect.addEventListener('change', (e) => {
-      const theme = e.target.value;
-      document.body.setAttribute('data-theme', theme);
-      localStorage.setItem('gyro_admin_theme', theme);
-      toast('Tema actualizado.');
-    });
-  }
-
-  // Cierre de Sesión desde el Menú
-  const btnMenuLogout = $('#btn-menu-logout');
-  if (btnMenuLogout) {
-    btnMenuLogout.addEventListener('click', () => {
-      localStorage.removeItem('gyro_admin_logged_in');
-      localStorage.removeItem('gyro_admin_dev_mode');
-      const urlParams = new URLSearchParams(window.location.search);
-      const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
-      if (isDevMode) {
-        window.location.href = window.location.pathname;
-      } else if (auth) {
-        signOut(auth).catch(() => {});
-      } else {
-        showLogin();
-      }
-    });
-  }
-
   const urlParams = new URLSearchParams(window.location.search);
   const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
   if (isDevMode) {
@@ -182,6 +101,7 @@ async function api(path, options = {}) {
 let toastTimer;
 function toast(msg) {
   const t = $('#toast');
+  if (!t) return;
   t.textContent = msg;
   t.hidden = false;
   requestAnimationFrame(() => t.classList.add('show'));
@@ -235,8 +155,6 @@ async function loadAnalytics() {
       }
     });
 
-    const money = (val) => \C$\\;
-
     const kpiSales = document.getElementById('kpi-sales');
     if (kpiSales) kpiSales.textContent = money(totalSales);
     const kpiCosts = document.getElementById('kpi-costs');
@@ -254,14 +172,14 @@ async function loadAnalytics() {
       } else {
         tbody.innerHTML = sellers.map(s => {
           const d = sellerData[s];
-          return \
+          return `
             <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 12px; font-weight: 700; color: var(--heading-color);">\</td>
-              <td style="padding: 12px; color: var(--text-soft);">\</td>
-              <td style="padding: 12px; font-weight: 600; color: var(--text);">\</td>
-              <td style="padding: 12px; font-weight: 800; color: var(--accent);">\</td>
+              <td style="padding: 12px; font-weight: 700; color: var(--heading-color);">${s}</td>
+              <td style="padding: 12px; color: var(--text-soft);">${d.count}</td>
+              <td style="padding: 12px; font-weight: 600; color: var(--text);">${money(d.total)}</td>
+              <td style="padding: 12px; font-weight: 800; color: var(--accent);">${money(d.comm)}</td>
             </tr>
-          \;
+          `;
         }).join('');
       }
     }

@@ -12,13 +12,13 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
   const snap = await db.collection(COL).get();
   const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   
-  // Ordenar por fecha (desc), luego lote (desc), luego código (asc)
+  // Ordenar por fecha (desc), luego lote (desc), luego código (asc) con ordenamiento natural
   list.sort((a, b) => {
     const dateComp = String(b.date || '').localeCompare(String(a.date || ''));
     if (dateComp !== 0) return dateComp;
-    const loteComp = String(b.lote || '').localeCompare(String(a.lote || ''));
+    const loteComp = String(b.lote || '').localeCompare(String(a.lote || ''), undefined, { numeric: true, sensitivity: 'base' });
     if (loteComp !== 0) return loteComp;
-    return String(a.code || '').localeCompare(String(b.code || ''));
+    return String(a.code || '').localeCompare(String(b.code || ''), undefined, { numeric: true, sensitivity: 'base' });
   });
   
   res.json(list);

@@ -1,22 +1,23 @@
 // Configuración central del backend (lee variables de entorno desde .env)
 require('dotenv').config();
 
+const adminEmails = (process.env.ADMIN_EMAILS || '')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+const sellerEmails = (process.env.SELLER_EMAILS || '')
+  .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
 module.exports = {
   port: Number(process.env.PORT) || 3000,
   serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || './server/serviceAccountKey.json',
   oneDriveSharingUrl: process.env.ONEDRIVE_SHARING_URL || '',
 
-  // Lista blanca de administradores (correos de Google autorizados)
-  adminEmails: (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean),
+  // Lista blanca de roles (compatibilidad con sistema anterior)
+  adminEmails,
+  sellerEmails,
 
-  // Lista blanca de vendedores (correos de Google/Firebase autorizados)
-  sellerEmails: (process.env.SELLER_EMAILS || '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean),
+  // Primer admin en la lista — no puede ser eliminado por nadie
+  protectedEmail: (process.env.PROTECTED_ADMIN_EMAIL || adminEmails[0] || '').toLowerCase(),
 
   // Config pública de la Web App de Firebase (para el login con Google en el admin)
   firebaseWeb: {
@@ -45,5 +46,18 @@ module.exports = {
     { id: 'bluetooth',    name: 'Bluetooth',        icon: '📶' },
   ],
 
-  collections: { products: 'products', orders: 'orders', purchases: 'purchases' },
+  collections: { products: 'products', orders: 'orders', purchases: 'purchases', users: 'users', usersDeleted: 'users_deleted' },
+
+  // Dominio interno para usuarios locales
+  internalDomain: process.env.INTERNAL_DOMAIN || 'gyrostore.com',
+
+  // Configuración SMTP para correos de invitación (opcional)
+  email: {
+    host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
+    port:   Number(process.env.EMAIL_PORT) || 465,
+    secure: process.env.EMAIL_SECURE !== 'false',
+    user:   process.env.EMAIL_USER   || '',
+    pass:   process.env.EMAIL_PASS   || '',
+    from:   process.env.EMAIL_FROM   || '',
+  },
 };

@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Admin · Gyro Store</title>
+  <title>Portal de Inventario · Gyro Store</title>
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
     
@@ -135,7 +136,10 @@
     }
     .grid-form textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
 
-    .filled-input {
+    .filled-input,
+    .modal-content input.filled-input,
+    .modal-content select.filled-input,
+    .modal-content textarea.filled-input {
       background: #e8f0fe !important;
       color: #0f172a !important;
       border-color: var(--accent) !important;
@@ -1156,6 +1160,73 @@
       justify-content: center;
       font-weight: bold;
     }
+    .notifications-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 40px;
+      background: var(--modal-bg);
+      border: 1.5px solid var(--modal-border);
+      border-radius: 12px;
+      width: 320px;
+      max-height: 400px;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 0;
+      animation: fadeInScale 0.15s ease;
+    }
+    .notif-header {
+      padding: 10px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--heading-color);
+      border-bottom: 1.5px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notif-items-list {
+      display: flex;
+      flex-direction: column;
+    }
+    .notif-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+    }
+    .notif-item:hover {
+      background: var(--tr-hover);
+    }
+    .notif-item-title {
+      font-weight: bold;
+      color: var(--text);
+    }
+    .notif-item-desc {
+      color: var(--text-soft);
+      font-size: 12px;
+    }
+    .notif-item-meta {
+      color: var(--muted);
+      font-size: 11px;
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .notif-empty {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
     .todo-panel {
       position: fixed;
       top: 0;
@@ -1222,6 +1293,10 @@
     }
     .todo-overlay.open { opacity: 1; pointer-events: auto; }
     .empty-todo { text-align: center; color: var(--text-soft); padding: 40px 20px; font-size: 14px; }
+    
+    .toast {
+      z-index: 3000 !important;
+    }
   </style>
 </head>
 <body>
@@ -1237,7 +1312,7 @@
   <div class="login-screen hidden" id="login-view">
     <div class="login-card">
       <img src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto var(--sp-4); border: 3px solid var(--accent); box-shadow: 0 0 20px rgba(124, 131, 255, 0.4);" />
-      <h1>Panel de Gyro Store</h1>
+      <h1>Portal de Inventario</h1>
       <p>Acceso solo para administradores autorizados.</p>
       
       <form id="email-login-form" class="login-form">
@@ -1247,7 +1322,17 @@
         </div>
         <div class="login-form-group">
           <label for="login-password">Contraseña</label>
-          <input type="password" id="login-password" required placeholder="••••••••" />
+          <div style="position:relative;display:flex;align-items:center">
+            <input type="password" id="login-password" required placeholder="••••••••"
+              style="width:100%;padding-right:42px" />
+            <button type="button" id="btn-toggle-password"
+              title="Mostrar/ocultar contraseña"
+              style="position:absolute;right:12px;background:none;border:none;cursor:pointer;
+                     color:var(--text-soft,#aab2cf);font-size:15px;padding:0;line-height:1;
+                     display:flex;align-items:center">
+              <i class="fa-solid fa-eye" id="toggle-pass-icon"></i>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn-solid" style="margin-top: 6px; padding: 12px; font-size: 14px; border: none; cursor: pointer; border-radius: var(--radius-pill); width: 100%; display: flex; align-items: center; justify-content: center; font-family: inherit;">
           Iniciar sesión
@@ -1271,13 +1356,76 @@
     </div>
   </div>
 
+  <!-- ===== MODAL: Dev Login ===== -->
+  <div id="dev-login-modal" style="display:none;position:fixed;inset:0;z-index:9999;
+       background:rgba(5,7,15,.85);backdrop-filter:blur(8px);
+       display:none;place-items:center;padding:16px">
+    <div style="background:#111827;border:1.5px solid rgba(255,255,255,0.08);border-radius:16px;
+                width:100%;max-width:380px;overflow:hidden;box-shadow:0 25px 50px rgba(0,0,0,.5)">
+      <!-- Header -->
+      <div style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.07);
+                  display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">💻</span>
+          <span style="font-weight:700;font-size:16px;color:#fff">Acceso de Desarrollador</span>
+        </div>
+        <button id="dev-modal-close" type="button"
+          style="background:none;border:none;cursor:pointer;color:#717a9c;font-size:20px;
+                 line-height:1;padding:0;display:flex;align-items:center">&times;</button>
+      </div>
+      <!-- Body -->
+      <div style="padding:24px">
+        <div style="background:rgba(124,131,255,0.08);border:1px solid rgba(124,131,255,0.2);
+                    border-radius:10px;padding:14px 16px;margin-bottom:20px">
+          <p style="margin:0;font-size:12px;color:#aab2cf;text-transform:uppercase;
+                    letter-spacing:.5px;font-weight:700;margin-bottom:4px">Iniciando sesión como</p>
+          <p style="margin:0;font-size:14px;font-weight:700;color:#9aa0ff">
+            dev-admin@gyrostore.com
+          </p>
+        </div>
+        <form id="dev-login-form">
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:700;color:#aab2cf;
+                          text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
+              Contraseña
+            </label>
+            <div style="position:relative;display:flex;align-items:center">
+              <input type="password" id="dev-login-password" placeholder="Ingresa tu contraseña"
+                autocomplete="current-password" required
+                style="width:100%;padding:10px 42px 10px 14px;background:#1e263d;
+                       border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;
+                       font-size:14px;color:#fff;font-family:inherit;box-sizing:border-box;
+                       outline:none;transition:border-color .2s"
+                onfocus="this.style.borderColor='#7c83ff'"
+                onblur="this.style.borderColor='rgba(255,255,255,0.12)'" />
+              <button type="button" id="dev-pass-toggle"
+                style="position:absolute;right:12px;background:none;border:none;cursor:pointer;
+                       color:#717a9c;font-size:15px;padding:0;line-height:1;display:flex;align-items:center">
+                <i class="fa-solid fa-eye" id="dev-pass-icon"></i>
+              </button>
+            </div>
+          </div>
+          <p id="dev-login-error"
+            style="display:none;color:#ef4444;font-size:13px;margin:0 0 12px;text-align:center"></p>
+          <button type="submit" id="dev-login-submit"
+            style="width:100%;padding:11px;border-radius:999px;border:none;cursor:pointer;
+                   background:linear-gradient(135deg,#7c83ff,#9aa0ff);color:#fff;
+                   font-weight:700;font-size:14px;font-family:inherit;
+                   box-shadow:0 4px 12px rgba(124,131,255,.3);transition:opacity .2s">
+            Iniciar sesión
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== PANEL ===== -->
   <div class="admin-wrap hidden" id="panel-view">
     <div class="admin-head">
       <div style="display: flex; align-items: center; gap: var(--sp-3);">
         <img src="assets/img/Gyro_Store_logo.jpeg" alt="Logo de Gyro Store" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent);" />
         <div>
-          <h1 style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;">🛠️ Gyro Store - Panel de administración</h1>
+          <h1 style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;">🏭 Gyro Store - Portal de Inventario</h1>
         </div>
       </div>
       <div class="user-box">
@@ -1288,6 +1436,16 @@
           <span id="notif-badge" class="notif-badge hidden">0</span>
         </button>
         <button class="hdr-action-btn" id="btn-settings" title="Menú de usuario" style="font-size: 16px; padding: 8px;">⚙️</button>
+        
+        <!-- Menú Desplegable de Notificaciones -->
+        <div id="notifications-dropdown" class="notifications-dropdown hidden">
+          <div class="notif-header">
+            <span>Notificaciones</span>
+          </div>
+          <div id="notif-items-list" class="notif-items-list">
+            <!-- Carga dinámica de notificaciones -->
+          </div>
+        </div>
         
         <!-- Menú Desplegable de Usuario -->
         <div id="user-menu-dropdown" class="user-menu-dropdown hidden">
@@ -1507,9 +1665,8 @@
                   <th class="text-right">Fecha Ingreso</th>
                   <th class="text-right">Tiempo Entrega</th>
                   <th class="text-right">Cant.</th>
-                  <th class="text-right">Costo Unit. (USD)</th>
                   <th class="text-right">Envío Unit. (USD)</th>
-                  <th class="text-right">Costo Total U. (USD)</th>
+                  <th class="text-right">Costo U. Final (USD)</th>
                   <th class="text-right">Total (USD)</th>
                   <th class="text-right">Costo Real (C$)</th>
                   <th class="text-right">Precio Sug. (C$)</th>
@@ -1520,7 +1677,7 @@
               </tbody>
               <tfoot id="stock-tfoot" style="font-weight: 800; background: rgba(124, 131, 255, 0.05); border-top: 2px solid var(--border-strong);">
                 <tr>
-                  <td colspan="9" class="text-right" style="padding-right: 20px; font-size: 13px;">TOTALES:</td>
+                  <td colspan="8" class="text-right" style="padding-right: 20px; font-size: 13px;">TOTALES:</td>
                   <td class="text-right" id="stock-total-usd" style="color: var(--accent); font-size: 14px;">$0.00</td>
                   <td class="text-right" id="stock-total-nio" style="color: #10b981; font-size: 14px;">C$0.00</td>
                   <td></td>
@@ -1540,9 +1697,8 @@
                   <th>Código</th>
                   <th style="min-width: 280px;">Producto</th>
                   <th class="text-right">Cant.</th>
-                  <th class="text-right">Costo Unit. (USD)</th>
                   <th class="text-right">Envío Unit. (USD)</th>
-                  <th class="text-right">Costo Total U. (USD)</th>
+                  <th class="text-right">Costo U. Final (USD)</th>
                   <th class="text-right">Total (USD)</th>
                   <th class="text-right">Costo Real (C$)</th>
                   <th class="text-right">Precio Sug. (C$)</th>
@@ -1554,7 +1710,7 @@
               </tbody>
               <tfoot id="stock-pending-tfoot" style="font-weight: 800; background: rgba(124, 131, 255, 0.05); border-top: 2px solid var(--border-strong);">
                 <tr>
-                  <td colspan="6" class="text-right" style="padding-right: 20px; font-size: 13px;">TOTALES:</td>
+                  <td colspan="5" class="text-right" style="padding-right: 20px; font-size: 13px;">TOTALES:</td>
                   <td class="text-right" id="stock-pending-total-usd" style="color: var(--accent); font-size: 14px;">$0.00</td>
                   <td class="text-right" id="stock-pending-total-nio" style="color: #10b981; font-size: 14px;">C$0.00</td>
                   <td></td>
@@ -1585,7 +1741,7 @@
             <input type="hidden" id="edit-pur-id" />
             <div class="grid-form" style="grid-template-columns: 1fr 1fr;">
               <label id="label-edit-pur-lote">Lote <input id="edit-pur-lote" required /></label>
-              <label id="label-edit-pur-code">Código <input id="edit-pur-code" /></label>
+              <label id="label-edit-pur-code">Código <input id="edit-pur-code" required /></label>
               <label id="edit-pur-date-label">Fecha Compra <input id="edit-pur-date" type="date" required /></label>
               <label id="edit-pur-receive-date-label" style="display: none;">Fecha Ingreso <input id="edit-pur-receive-date" type="date" /></label>
               <label id="label-edit-pur-product" style="grid-column: 1 / -1">Producto <input id="edit-pur-product" required list="products-datalist" /></label>
@@ -1647,6 +1803,7 @@
         </div>
         
         <div class="form-actions" style="margin-top: var(--sp-5); justify-content: flex-end; gap: var(--sp-2);">
+          <button type="button" class="btn-ghost del-btn hidden" id="review-discard-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); margin-right: auto;">Descartar</button>
           <button type="button" class="btn-ghost" id="cancel-review-btn">Cancelar</button>
           <button type="submit" class="btn-solid">Aprobar e Ingresar</button>
         </div>
@@ -1694,6 +1851,33 @@
   </div>
 
 
+
+  <!-- ===== MODAL CONFIGURACIÓN ===== -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2>Configuración</h2>
+        <button class="close-modal-btn" type="button" id="close-settings-modal-btn">&times;</button>
+      </div>
+      <form id="settings-form" style="padding: 24px;">
+        <div class="grid-form" style="grid-template-columns: 1fr;">
+          <label>Tema
+            <select id="settings-theme" required>
+              <option value="dark">Oscuro (Dark)</option>
+              <option value="light">Claro (Light)</option>
+            </select>
+          </label>
+        </div>
+        <div style="margin-top: var(--sp-5); border-top: 1px solid var(--border); padding-top: var(--sp-4); display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3);">
+          <button type="button" class="btn-ghost del-btn" id="btn-logout" style="margin: 0; padding: 8px 16px; font-size: 13px; color: var(--danger); background: rgba(239, 68, 68, 0.15); border: none; cursor: pointer; font-weight: 700; border-radius: var(--radius-pill);">Cerrar Sesión</button>
+          <div class="form-actions" style="margin: 0; justify-content: flex-end; gap: var(--sp-2);">
+            <button type="button" class="btn-ghost" id="cancel-settings-btn" style="cursor: pointer;">Cancelar</button>
+            <button type="submit" class="btn-solid" style="border: none; cursor: pointer;">Guardar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <datalist id="products-datalist"></datalist>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

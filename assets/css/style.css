@@ -579,6 +579,43 @@ header.header-compacto .btn-menu {
 .sidebar-location { color: var(--text-soft); font-size: 13px; font-weight: 600; text-align: center; }
 .muted { color: var(--muted); font-size: 13px; text-align: center; }
 
+/* ============================================================
+   SIDEBAR — Admin dropdown submenu
+   ============================================================ */
+.sidebar-admin-group { list-style: none; }
+
+.sidebar-admin-trigger {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 13px 16px; border-radius: var(--radius-sm);
+  background: none; border: none; cursor: pointer; font: inherit;
+  font-weight: 700; font-size: 14px; color: var(--accent-soft);
+  transition: background 0.18s, color 0.18s, padding-left 0.18s;
+  text-align: left;
+}
+.sidebar-admin-trigger:hover { background: var(--glass-strong); color: var(--accent); padding-left: 20px; }
+.sidebar-admin-trigger .sidebar-arrow {
+  margin-left: auto; font-size: 10px;
+  transition: transform 0.25s; color: var(--muted);
+}
+.sidebar-admin-group.open .sidebar-arrow { transform: rotate(180deg); }
+
+.sidebar-submenu {
+  list-style: none; padding: 4px 0 4px 0; margin: 0;
+  border-left: 2px solid rgba(124, 131, 255, 0.3);
+  margin-left: 24px;
+  display: none;
+}
+.sidebar-admin-group.open .sidebar-submenu { display: block; }
+
+.sidebar-submenu li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  font-weight: 600; font-size: 13.5px; color: var(--text-soft);
+  transition: background 0.18s, color 0.18s, padding-left 0.18s;
+}
+.sidebar-submenu li a:hover { background: var(--glass-strong); color: var(--text); padding-left: 20px; }
+.sidebar-submenu li a i { width: 16px; text-align: center; color: var(--muted); }
+
 /* Carrito Cuerpo */
 .cart-body { flex: 1; overflow-y: auto; padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
 .cart-item {

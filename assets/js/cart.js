@@ -143,7 +143,9 @@ window.GyroCart = (function () {
   async function submitCheckout(e) {
     e.preventDefault();
     const name = $('#co-name'), phone = $('#co-phone'), address = $('#co-address');
-    const delivery = document.querySelector('input[name="delivery"]:checked').value;
+    const deliveryEl = document.querySelector('input[name="delivery"]:checked');
+    if (!deliveryEl) { toast('Seleccioná un método de entrega'); return; }
+    const delivery = deliveryEl.value;
 
     let ok = true;
     [name, phone].forEach((f) => { const bad = !f.value.trim(); f.classList.toggle('invalid', bad); if (bad) ok = false; });
