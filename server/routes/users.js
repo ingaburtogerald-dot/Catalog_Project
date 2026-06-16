@@ -11,6 +11,29 @@ const USERS = config.collections.users;
 const TRASH = config.collections.usersDeleted;
 const VALID_ROLES = ['admin', 'seller', 'cashier'];
 
+async function deleteFromAuth(uid, email) {
+  if (uid) {
+    try {
+      await getAuth().deleteUser(uid);
+      console.log(`Successfully deleted user ${uid} from Auth.`);
+      return;
+    } catch (err) {
+      console.error(`Error deleting user ${uid} from Auth by UID:`, err.message);
+    }
+  }
+  if (email) {
+    try {
+      const userRecord = await getAuth().getUserByEmail(email.toLowerCase());
+      await getAuth().deleteUser(userRecord.uid);
+      console.log(`Successfully deleted user ${email} from Auth by email.`);
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') {
+        console.error(`Error deleting user ${email} from Auth by email:`, err.message);
+      }
+    }
+  }
+}
+
 function generatePassword(len = 14) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -20,8 +43,8 @@ async function purgeExpiredTrash() {
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const snap = await db.collection(TRASH).where('deletedAt', '<', cutoff).get();
   for (const doc of snap.docs) {
-    const uid = doc.data().uid;
-    if (uid) { try { await getAuth().deleteUser(uid); } catch {} }
+    const data = doc.data();
+    await deleteFromAuth(data.uid, data.email);
     await doc.ref.delete();
   }
 }
@@ -69,8 +92,8 @@ router.delete('/trash/:id', requireAdmin, asyncHandler(async (req, res) => {
   const snap = await trashRef.get();
   if (!snap.exists) return res.status(404).json({ error: 'No encontrado en la papelera.' });
 
-  const uid = snap.data().uid;
-  if (uid) { try { await getAuth().deleteUser(uid); } catch {} }
+  const data = snap.data();
+  await deleteFromAuth(data.uid, data.email);
   await trashRef.delete();
   res.json({ ok: true });
 }));
@@ -140,36 +163,72 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   if (!VALID_ROLES.includes(role))
     return res.status(400).json({ error: `Rol inválido. Use: ${VALID_ROLES.join(', ')}.` });
 
-  // ── Usuario local @gyrostore.com ──
+  let targetEmail = '';
+  let cleanUsername = null;
+
   if (type === 'local') {
     if (!username?.trim())
       return res.status(400).json({ error: 'El nombre de usuario es obligatorio.' });
+    cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    if (!cleanUsername) return res.status(400).json({ error: 'El nombre de usuario contiene caracteres inválidos.' });
+    targetEmail = `${cleanUsername}@${config.internalDomain}`;
+  } else {
+    targetEmail = email?.trim().toLowerCase();
+    if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail))
+      return res.status(400).json({ error: 'Correo de Google inválido.' });
+  }
 
-    const clean = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
-    if (!clean) return res.status(400).json({ error: 'El nombre de usuario contiene caracteres inválidos.' });
-    const fullEmail = `${clean}@${config.internalDomain}`;
+  // 1. Verificar si ya existe en activos
+  const existingActive = await db.collection(USERS).where('email', '==', targetEmail).limit(1).get();
+  if (!existingActive.empty) {
+    return res.status(409).json({ error: 'Este correo ya está registrado.' });
+  }
 
-    const existing = await db.collection(USERS).where('email', '==', fullEmail).limit(1).get();
-    if (!existing.empty) return res.status(409).json({ error: 'Ese nombre de usuario ya existe.' });
+  // 2. Verificar papelera y limpiar rastro antes de proceder
+  const existingTrash = await db.collection(TRASH).where('email', '==', targetEmail).get();
+  if (!existingTrash.empty) {
+    console.log(`User ${targetEmail} found in trash. Purging from trash to recreate.`);
+    for (const doc of existingTrash.docs) {
+      const data = doc.data();
+      await deleteFromAuth(data.uid, data.email);
+      await doc.ref.delete();
+    }
+  }
 
+  // ── Usuario local @gyrostore.com ──
+  if (type === 'local') {
     const tempPassword = generatePassword();
     let uid;
     try {
       const fbUser = await getAuth().createUser({
-        email: fullEmail, password: tempPassword,
+        email: targetEmail, password: tempPassword,
         displayName: displayName.trim(), emailVerified: true,
       });
       uid = fbUser.uid;
     } catch (err) {
-      if (err.code === 'auth/email-already-exists')
-        return res.status(409).json({ error: 'Este usuario ya existe en Firebase Auth.' });
-      throw err;
+      if (err.code === 'auth/email-already-exists') {
+        // Si por alguna razón sigue existiendo en Auth pero no en la base de datos (huérfano),
+        // lo eliminamos e intentamos de nuevo una sola vez.
+        try {
+          const u = await getAuth().getUserByEmail(targetEmail);
+          await getAuth().deleteUser(u.uid);
+          const fbUser = await getAuth().createUser({
+            email: targetEmail, password: tempPassword,
+            displayName: displayName.trim(), emailVerified: true,
+          });
+          uid = fbUser.uid;
+        } catch (retryErr) {
+          return res.status(409).json({ error: 'Este usuario ya existe en Firebase Auth y no pudo recrearse.' });
+        }
+      } else {
+        throw err;
+      }
     }
 
     const userData = {
-      uid, email: fullEmail,
+      uid, email: targetEmail,
       displayName: displayName.trim(),
-      username: clean, role, type: 'local', status: 'active',
+      username: cleanUsername, role, type: 'local', status: 'active',
       createdAt: FieldValue.serverTimestamp(),
       createdBy: req.user.email,
     };
@@ -177,9 +236,9 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 
     const emailSent = Boolean(config.email.user && sendInvite);
     if (emailSent) {
-      getAuth().generatePasswordResetLink(fullEmail)
+      getAuth().generatePasswordResetLink(targetEmail)
         .then(resetLink => {
-          sendLocalInvite({ to: fullEmail, displayName: displayName.trim(), email: fullEmail, role, resetLink })
+          sendLocalInvite({ to: targetEmail, displayName: displayName.trim(), email: targetEmail, role, resetLink })
             .catch(e => console.error('Email sending error:', e.message));
         })
         .catch(e => console.error('Error generating password reset link:', e.message));
@@ -189,15 +248,18 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   }
 
   // ── Usuario invitado (Google) ──
-  const guestEmail = email?.trim().toLowerCase();
-  if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail))
-    return res.status(400).json({ error: 'Correo de Google inválido.' });
-
-  const existing = await db.collection(USERS).where('email', '==', guestEmail).limit(1).get();
-  if (!existing.empty) return res.status(409).json({ error: 'Este correo ya está registrado.' });
+  // Si existiera huérfano en Auth (huella de logeo previo de un invitado), lo eliminamos
+  // para que siempre sea una invitación limpia y no choque la creación.
+  try {
+    const u = await getAuth().getUserByEmail(targetEmail);
+    await getAuth().deleteUser(u.uid);
+    console.log(`Purged orphan guest auth user: ${targetEmail}`);
+  } catch (err) {
+    // ignorar si no existe
+  }
 
   const userData = {
-    uid: null, email: guestEmail,
+    uid: null, email: targetEmail,
     displayName: displayName.trim(),
     role, type: 'guest', status: 'active',
     createdAt: FieldValue.serverTimestamp(),
@@ -208,7 +270,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const emailSent = Boolean(config.email.user && sendInvite);
   if (emailSent) {
     const appUrl = `${req.protocol}://${req.get('host')}`;
-    sendGuestInvite({ to: guestEmail, displayName: displayName.trim(), role, appUrl })
+    sendGuestInvite({ to: targetEmail, displayName: displayName.trim(), role, appUrl })
       .catch(e => console.error('Email sending error:', e.message));
   }
 
@@ -311,32 +373,64 @@ router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
 
 // DELETE /api/users/:id — soft delete → papelera
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const ref = db.collection(USERS).doc(req.params.id);
-  const snap = await ref.get();
-  if (!snap.exists) return res.status(404).json({ error: 'Usuario no encontrado.' });
+  const id = req.params.id;
+  let userData;
+  let docRef = null;
 
-  const data = snap.data();
-  if (data.email?.toLowerCase() === config.protectedEmail)
+  if (id.startsWith('legacy:')) {
+    const email = id.replace(/^legacy:/, '').toLowerCase();
+    if (email === config.protectedEmail)
+      return res.status(403).json({ error: 'El administrador principal está protegido y no puede eliminarse.' });
+
+    // Buscar en Firebase Auth
+    let uid = null;
+    let displayName = email.split('@')[0];
+    try {
+      const authUser = await getAuth().getUserByEmail(email);
+      uid = authUser.uid;
+      displayName = authUser.displayName || displayName;
+    } catch (err) {}
+
+    const isInternal = email.endsWith(`@${config.internalDomain}`);
+    userData = {
+      uid, email, displayName,
+      role: 'seller', // default
+      type: isInternal ? 'local' : 'guest',
+      status: 'active',
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: req.user.email,
+    };
+    if (isInternal) userData.username = email.split('@')[0];
+  } else {
+    docRef = db.collection(USERS).doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    userData = snap.data();
+  }
+
+  if (userData.email?.toLowerCase() === config.protectedEmail)
     return res.status(403).json({ error: 'El administrador principal está protegido y no puede eliminarse.' });
 
-  if (data.email === req.user.email)
+  if (userData.email === req.user.email)
     return res.status(400).json({ error: 'No puedes eliminarte a ti mismo.' });
 
   const deletedAt = new Date();
   const expiresAt = new Date(deletedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   await db.collection(TRASH).add({
-    ...data,
+    ...userData,
     deletedAt: FieldValue.serverTimestamp(),
     deletedBy: req.user.email,
     expiresAt,
   });
 
-  if (data.uid && data.type === 'local') {
-    try { await getAuth().updateUser(data.uid, { disabled: true }); } catch {}
+  if (userData.uid && userData.type === 'local') {
+    try { await getAuth().updateUser(userData.uid, { disabled: true }); } catch {}
   }
 
-  await ref.delete();
+  if (docRef) {
+    await docRef.delete();
+  }
   res.json({ ok: true });
 }));
 
