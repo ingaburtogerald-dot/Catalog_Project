@@ -1514,6 +1514,7 @@ async function showPanel(user) {
   localStorage.setItem('gyro_user_name', user.displayName || user.email.split('@')[0] || '');
   localStorage.setItem('gyro_user_photo', user.photoURL || '');
   localStorage.setItem('gyro_user_role', user.role || '');
+  localStorage.setItem('gyro_user_roles', JSON.stringify(user.roles || (user.role ? [user.role] : [])));
 
   if (user.role === 'seller') {
     localStorage.setItem('gyro_admin_dev_mode', 'seller');
@@ -2119,7 +2120,8 @@ async function init() {
         email: me.email,
         photoURL: user.photoURL,
         displayName: user.displayName || me.email.split('@')[0],
-        role: me.role
+        role: me.role,
+        roles: me.roles
       });
     } catch (err) {
       // Cuenta válida pero NO autorizada como admin

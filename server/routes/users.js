@@ -9,7 +9,17 @@ const config = require('../config');
 
 const USERS = config.collections.users;
 const TRASH = config.collections.usersDeleted;
-const VALID_ROLES = ['admin', 'seller', 'cashier'];
+const VALID_ROLES = config.validRoles;
+
+function primaryRoleOf(roles) {
+  return config.rolePriority.find((r) => roles.includes(r)) || roles[0] || null;
+}
+
+// Acepta `roles` (array, preferido) o `role` (string, legado) en el body de la petición.
+function normalizeRoles(body) {
+  const raw = Array.isArray(body.roles) ? body.roles : (body.role ? [body.role] : []);
+  return [...new Set(raw.filter((r) => VALID_ROLES.includes(r)))];
+}
 
 async function deleteFromAuth(uid, email) {
   if (uid) {
@@ -133,6 +143,7 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
         email,
         displayName: u.displayName || email.split('@')[0],
         role: role || 'sin-rol',
+        roles: role ? [role] : [],
         type: isInternal ? 'local' : 'guest',
         status: 'active',
         legacy: true,
@@ -143,9 +154,11 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
     pageToken = result.pageToken;
   } while (pageToken);
 
-  // Marcar protectedEmail también en usuarios de Firestore
+  // Marcar protectedEmail también en usuarios de Firestore, y normalizar `roles`
+  // para usuarios legados que solo tengan el campo `role` (string) guardado.
   const withProtected = firestoreUsers.map(u => ({
     ...u,
+    roles: Array.isArray(u.roles) && u.roles.length ? u.roles : (u.role ? [u.role] : []),
     protected: u.email.toLowerCase() === config.protectedEmail,
   }));
 
@@ -154,14 +167,16 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // POST /api/users — crear usuario local o invitado
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { type, displayName, username, email, role, sendInvite } = req.body || {};
+  const { type, displayName, username, email, sendInvite } = req.body || {};
+  const roles = normalizeRoles(req.body || {});
+  const role = primaryRoleOf(roles);
 
   if (!['local', 'guest'].includes(type))
     return res.status(400).json({ error: 'Tipo inválido. Use "local" o "guest".' });
   if (!displayName?.trim())
     return res.status(400).json({ error: 'El nombre para mostrar es obligatorio.' });
-  if (!VALID_ROLES.includes(role))
-    return res.status(400).json({ error: `Rol inválido. Use: ${VALID_ROLES.join(', ')}.` });
+  if (!roles.length)
+    return res.status(400).json({ error: `Selecciona al menos un rol válido. Use: ${VALID_ROLES.join(', ')}.` });
 
   let targetEmail = '';
   let cleanUsername = null;
@@ -228,7 +243,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     const userData = {
       uid, email: targetEmail,
       displayName: displayName.trim(),
-      username: cleanUsername, role, type: 'local', status: 'active',
+      username: cleanUsername, role, roles, type: 'local', status: 'active',
       createdAt: FieldValue.serverTimestamp(),
       createdBy: req.user.email,
     };
@@ -261,7 +276,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   const userData = {
     uid: null, email: targetEmail,
     displayName: displayName.trim(),
-    role, type: 'guest', status: 'active',
+    role, roles, type: 'guest', status: 'active',
     createdAt: FieldValue.serverTimestamp(),
     createdBy: req.user.email,
   };
@@ -279,10 +294,12 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // PATCH /api/users/:id — editar usuario (nombre y rol)
 router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { displayName, role } = req.body || {};
-  
-  if (role && !VALID_ROLES.includes(role))
-    return res.status(400).json({ error: `Rol inválido. Use: ${VALID_ROLES.join(', ')}.` });
+  const { displayName } = req.body || {};
+  const rolesProvided = req.body && (req.body.roles !== undefined || req.body.role !== undefined);
+  const roles = rolesProvided ? normalizeRoles(req.body || {}) : null;
+
+  if (rolesProvided && !roles.length)
+    return res.status(400).json({ error: `Selecciona al menos un rol válido. Use: ${VALID_ROLES.join(', ')}.` });
 
   const id = req.params.id;
 
@@ -310,13 +327,15 @@ router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
 
     const isInternal = email.endsWith(`@${config.internalDomain}`);
     const username = isInternal ? email.split('@')[0] : null;
+    const finalRoles = roles && roles.length ? roles : ['seller']; // valor por defecto razonable
 
     // Crear el documento en Firestore
     const userData = {
       uid,
       email,
       displayName: cleanDisplayName,
-      role: role || 'seller', // valor por defecto razonable
+      role: primaryRoleOf(finalRoles),
+      roles: finalRoles,
       type: isInternal ? 'local' : 'guest',
       status: 'active',
       createdAt: FieldValue.serverTimestamp(),
@@ -333,7 +352,7 @@ router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
       console.error('Error actualizando displayName en Firebase Auth:', err.message);
     }
 
-    return res.json({ id: ref.id, displayName: cleanDisplayName, role: userData.role });
+    return res.json({ id: ref.id, displayName: cleanDisplayName, role: userData.role, roles: userData.roles });
   }
 
   // 2. Manejo de usuarios normales en Firestore
@@ -346,7 +365,10 @@ router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'El administrador principal está protegido y no se puede editar.' });
 
   const updateData = {};
-  if (role) updateData.role = role;
+  if (roles && roles.length) {
+    updateData.roles = roles;
+    updateData.role = primaryRoleOf(roles);
+  }
   if (displayName !== undefined) {
     const cleanDisplayName = displayName?.trim();
     if (!cleanDisplayName)
@@ -394,7 +416,7 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
     const isInternal = email.endsWith(`@${config.internalDomain}`);
     userData = {
       uid, email, displayName,
-      role: 'seller', // default
+      role: 'seller', roles: ['seller'], // default
       type: isInternal ? 'local' : 'guest',
       status: 'active',
       createdAt: FieldValue.serverTimestamp(),

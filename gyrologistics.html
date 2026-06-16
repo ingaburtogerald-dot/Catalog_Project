@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Gyro Logistics · Gyro Store</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-900: #0f172a; --bg-800: #1e293b; --bg-700: #334155;
+      --surface: #151b2c; --page: #0b0f19;
+      --text: #e2e8f0; --text-soft: #aab2cf; --muted: #717a9c;
+      --accent: #7c83ff; --accent-soft: #9aa0ff;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-strong: rgba(255, 255, 255, 0.12);
+      --input-bg: #1e263d; --input-border: rgba(255, 255, 255, 0.12); --input-color: #fff;
+      --btn-ghost-bg: #1e263d; --btn-ghost-hover: #2b3654; --btn-ghost-border: rgba(255, 255, 255, 0.08);
+      --tr-hover: rgba(255, 255, 255, 0.02); --tr-border: rgba(255, 255, 255, 0.08);
+      --heading-color: #fff; --modal-bg: #111827; --modal-border: rgba(255, 255, 255, 0.08);
+    }
+    body[data-theme="light"] {
+      --bg-900: #cbd5e1; --bg-800: #e2e8f0; --bg-700: #94a3b8;
+      --surface: #ffffff; --page: #f8fafc;
+      --text: #0f172a; --text-soft: #334155; --muted: #64748b;
+      --accent: #6366f1; --accent-soft: #818cf8;
+      --border: rgba(15, 23, 42, 0.08); --border-strong: rgba(15, 23, 42, 0.15);
+      --input-bg: #f1f5f9; --input-border: rgba(15, 23, 42, 0.15); --input-color: #0f172a;
+      --btn-ghost-bg: #f1f5f9; --btn-ghost-hover: #e2e8f0; --btn-ghost-border: rgba(15, 23, 42, 0.1);
+      --tr-hover: rgba(0, 0, 0, 0.02); --tr-border: rgba(15, 23, 42, 0.08);
+      --heading-color: #0f172a; --modal-bg: #ffffff; --modal-border: rgba(15, 23, 42, 0.1);
+    }
+    body { background: var(--page); color: var(--text); font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; }
+    .hidden { display: none !important; }
+    .login-screen { min-height: 80vh; display: grid; place-items: center; }
+    .spinner { border: 4px solid var(--border-strong); border-left-color: var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .admin-wrap { max-width: 1100px; margin: 0 auto; padding: var(--sp-6) var(--sp-5); }
+    .admin-head { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: center; justify-content: space-between; margin-bottom: var(--sp-5); }
+    .admin-head h1 { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; color: var(--heading-color); }
+    .user-box { display: flex; gap: var(--sp-3); align-items: center; font-size: 14px; }
+    .user-box img { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--accent); object-fit: cover; }
+
+    .panel { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: var(--sp-5); margin-bottom: var(--sp-5); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .panel h2 { font-size: 17px; margin-bottom: var(--sp-4); color: var(--heading-color); }
+
+    .btn-solid { padding: 10px 18px; border-radius: var(--radius-pill); font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-soft)); border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(124,131,255,0.25); transition: transform .2s; }
+    .btn-solid:hover { transform: translateY(-1px); }
+    .btn-ghost { padding: 10px 18px; border-radius: var(--radius-pill); font-weight: 700; color: var(--text); background: var(--btn-ghost-bg); border: 1.5px solid var(--btn-ghost-border); cursor: pointer; transition: background .2s; }
+    .btn-ghost:hover { background: var(--btn-ghost-hover); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--tr-border); vertical-align: middle; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; }
+    tr:hover { background: var(--tr-hover); }
+
+    .status-pill { display: inline-block; white-space: nowrap; padding: 4px 10px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+    .status-compra_china { background: rgba(59,130,246,.15); color: #3b82f6; border: 1px solid rgba(59,130,246,.3); }
+    .status-recibido_china { background: rgba(245,158,11,.15); color: #f59e0b; border: 1px solid rgba(245,158,11,.3); }
+    .status-recibido_nicaragua { background: rgba(16,185,129,.15); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+
+    .empty-state { text-align: center; padding: var(--sp-7) var(--sp-4); color: var(--muted); font-weight: 500; }
+
+    .shipment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-4); }
+    .shipment-card { background: var(--bg-800); border: 1.5px solid var(--border); border-radius: var(--radius); padding: var(--sp-4); display: flex; flex-direction: column; gap: 10px; }
+    .shipment-card .ship-num { font-weight: 700; color: var(--heading-color); font-size: 15px; }
+    .shipment-card .ship-date { color: var(--text-soft); font-size: 13px; }
+    .timeline { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .timeline-step { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--muted); }
+    .timeline-step.done { color: var(--text); }
+    .timeline-step i { margin-top: 2px; }
+    .timeline-step.done i { color: #10b981; }
+    .shipment-photo { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+
+    .modal { position: fixed; inset: 0; z-index: 1000; background: rgba(5,7,15,.85); backdrop-filter: blur(8px); display: grid; place-items: center; padding: var(--sp-4); }
+    .modal-content { background: var(--modal-bg); border: 1.5px solid var(--modal-border); border-radius: 16px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,.5); display: flex; flex-direction: column; overflow: hidden; max-height: 90vh; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid var(--modal-border); }
+    .modal-header h2 { font-size: 17px; color: var(--heading-color); margin: 0; font-weight: 700; }
+    .close-modal-btn { font-size: 20px; color: var(--text-soft); border: none; background: none; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; }
+    .close-modal-btn:hover { background: var(--tr-hover); }
+    .modal-body { padding: 24px; overflow-y: auto; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 16px; }
+    .form-field input, .form-field textarea { padding: 10px 12px; background: var(--input-bg); border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font: inherit; color: var(--input-color); }
+    .form-field input:focus, .form-field textarea:focus { border-color: var(--accent); outline: none; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px 22px; border-radius: var(--radius-pill); font-size: 14px; opacity: 0; transition: opacity .3s, transform .3s; z-index: 2000; box-shadow: 0 10px 24px rgba(0,0,0,.4); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <!-- ===== LOADING ===== -->
+  <div class="login-screen" id="loading-view">
+    <div style="text-align:center">
+      <div class="spinner"></div>
+      <p style="color:var(--text-soft);font-size:16px;font-weight:500">Cargando sesión...</p>
+    </div>
+  </div>
+
+  <!-- ===== LOGIN ===== -->
+  <div class="login-screen hidden" id="login-view">
+    <div style="text-align:center;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:360px;padding:0 20px">
+      <img src="assets/img/Gyro_Store_logo.jpeg" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);object-fit:cover" />
+      <h1 style="color:var(--heading-color);font-size:22px;font-weight:800;margin:0">Gyro Logistics</h1>
+      <p style="color:var(--text-soft);font-size:14px;margin:0">Inicia sesión para ver el seguimiento de tus paquetes desde China.</p>
+      <form id="email-login-form" style="display:flex;flex-direction:column;gap:10px;width:100%">
+        <input type="email" id="login-email" placeholder="Correo electrónico" required
+          style="padding:11px 14px;border-radius:10px;border:1.5px solid var(--input-border);background:var(--input-bg);color:var(--input-color);font:inherit">
+        <input type="password" id="login-password" placeholder="Contraseña" required
+          style="padding:11px 14px;border-radius:10px;border:1.5px solid var(--input-border);background:var(--input-bg);color:var(--input-color);font:inherit">
+        <button type="submit" class="btn-solid">Iniciar sesión</button>
+      </form>
+      <p id="login-error" class="hidden" style="color:#ef4444;font-size:13px;margin:0"></p>
+      <a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:underline">Volver al catálogo</a>
+    </div>
+  </div>
+
+  <!-- ===== PANEL ===== -->
+  <div class="admin-wrap hidden" id="panel-view">
+    <div class="admin-head">
+      <h1><img src="assets/img/Gyro_Store_logo.jpeg" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)"> Gyro Logistics</h1>
+      <div class="user-box">
+        <button class="btn-solid hidden" id="btn-new-shipment"><i class="fa-solid fa-plus"></i> Nueva revisión</button>
+        <img id="user-photo" alt="" />
+        <span id="user-email"></span>
+        <button class="btn-ghost" id="btn-logout" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </div>
+
+    <!-- Vista cliente -->
+    <section id="customer-view" class="hidden">
+      <div class="panel">
+        <h2>Mis paquetes</h2>
+        <div id="customer-grid" class="shipment-grid"></div>
+      </div>
+    </section>
+
+    <!-- Vista admin -->
+    <section id="admin-view" class="hidden">
+      <div class="panel">
+        <h2>Revisiones de todos los clientes</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Fecha compra</th><th>Envío</th><th>Estado</th><th>Foto</th><th></th></tr>
+            </thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== MODAL: Nueva revisión (cliente) ===== -->
+  <div id="create-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Nueva revisión de paquete</h2>
+        <button class="close-modal-btn" id="close-create-modal">&times;</button>
+      </div>
+      <form id="create-form" class="modal-body">
+        <label class="form-field">Fecha de compra
+          <input type="date" id="f-purchaseDate" required>
+        </label>
+        <label class="form-field">Número de envío / tracking
+          <input type="text" id="f-shippingNumber" placeholder="Ej. CN-123456789" required>
+        </label>
+        <label class="form-field">Foto del paquete (opcional)
+          <input type="file" id="f-photo" accept="image/*">
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="cancel-create">Cancelar</button>
+          <button type="submit" class="btn-solid" id="submit-create">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Avanzar estado (admin) ===== -->
+  <div id="advance-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="advance-modal-title">Avanzar estado</h2>
+        <button class="close-modal-btn" id="close-advance-modal">&times;</button>
+      </div>
+      <form id="advance-form" class="modal-body">
+        <label class="form-field">Comentario para el cliente
+          <textarea id="f-comment" rows="3" placeholder="Ej. Confirmado con el equipo en China, llega a Managua en 45-60 días." required></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost" id="cancel-advance">Cancelar</button>
+          <button type="submit" class="btn-solid" id="submit-advance">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="assets/js/gyrologistics.js"></script>
+  <script src="assets/js/auth-global.js"></script>
+</body>
+</html>

@@ -10,11 +10,12 @@ function init() {
   if (getApps().length) return admin;
 
   const keyPath = path.resolve(process.cwd(), config.serviceAccountPath);
+  const storageBucket = config.firebaseWeb.storageBucket || undefined;
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     try {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      admin.initializeApp({ credential: admin.cert(serviceAccount) });
+      admin.initializeApp({ credential: admin.cert(serviceAccount), storageBucket });
       console.log(`🔑 Firebase Admin inicializado desde variable de entorno: ${serviceAccount.project_id}`);
     } catch (e) {
       console.error('❌ Error al parsear FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
@@ -22,11 +23,11 @@ function init() {
     }
   } else if (fs.existsSync(keyPath)) {
     const serviceAccount = require(keyPath);
-    admin.initializeApp({ credential: admin.cert(serviceAccount) });
+    admin.initializeApp({ credential: admin.cert(serviceAccount), storageBucket });
     console.log(`🔑 Firebase Admin inicializado para el proyecto: ${serviceAccount.project_id}`);
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     // Alternativa: credenciales por defecto del entorno (ADC)
-    admin.initializeApp();
+    admin.initializeApp({ storageBucket });
     console.log('🔑 Firebase Admin inicializado con GOOGLE_APPLICATION_CREDENTIALS');
   } else {
     console.error('\n❌ No se encontró el archivo de credenciales de Firebase.');

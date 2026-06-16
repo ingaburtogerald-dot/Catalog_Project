@@ -68,8 +68,11 @@
     /* ── Badges ── */
     .role-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
     .role-admin  {background:rgba(124,131,255,.15);color:#7c83ff;border:1px solid rgba(124,131,255,.3)}
+    .role-global_admin{background:rgba(236,72,153,.15);color:#ec4899;border:1px solid rgba(236,72,153,.3)}
     .role-seller {background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
     .role-cashier{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+    .role-logistics_admin{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
+    .role-logistics_customer{background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.3)}
     .type-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--radius-pill);font-size:11px;font-weight:700}
     .type-local  {background:rgba(59,130,246,.12);color:#3b82f6}
     .type-guest  {background:rgba(234,179,8,.12);color:#ca8a04}
@@ -143,6 +146,35 @@
 
     /* ── Select styled ── */
     select option{background:var(--modal-bg);color:var(--text)}
+
+    /* ── Stats row ── */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-5)}
+    .stat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:4px;transition:transform .15s,border-color .15s,box-shadow .15s}
+    .stat-card:hover{transform:translateY(-2px);border-color:var(--border-strong);box-shadow:0 8px 20px rgba(0,0,0,.18)}
+    .stat-card .stat-value{font-size:26px;font-weight:800;color:var(--heading-color);line-height:1.1}
+    .stat-card .stat-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+
+    /* ── Search + filter chips ── */
+    .filter-row{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;margin-bottom:var(--sp-4)}
+    .search-input{flex:1;min-width:200px;padding:10px 16px;background:var(--input-bg);border:1.5px solid var(--input-border);border-radius:var(--radius-pill);font:inherit;font-size:14px;color:var(--input-color);transition:border-color .2s}
+    .search-input:focus{border-color:var(--accent);outline:none}
+    .filter-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .filter-chip{padding:7px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;background:var(--btn-ghost-bg);border:1.5px solid var(--btn-ghost-border);color:var(--text-soft);transition:all .15s}
+    .filter-chip:hover{border-color:var(--border-strong);color:var(--heading-color)}
+    .filter-chip.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(124,131,255,.3)}
+
+    /* ── Role multi-select checkboxes ── */
+    .role-checks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .role-check{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--input-border);background:var(--input-bg);font-size:13px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all .15s}
+    .role-check:hover{border-color:var(--border-strong)}
+    .role-check input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex-shrink:0}
+    .role-check.checked{border-color:var(--accent);background:rgba(124,131,255,.12);color:var(--heading-color)}
+
+    /* ── Micro animations ── */
+    .modal-content{animation:modalIn .25s cubic-bezier(.16,1,.3,1)}
+    @keyframes modalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .stat-card,.shipment-card{animation:fadeIn .3s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   </style>
 </head>
 <body>
@@ -169,6 +201,8 @@
     </div>
   </div>
 
+  <div class="stats-row" id="stats-row"></div>
+
   <div class="tabs">
     <button class="tab active" data-tab="users"><i class="fa-solid fa-users"></i> Usuarios</button>
     <button class="tab" data-tab="trash"><i class="fa-solid fa-trash-can"></i> Papelera</button>
@@ -180,6 +214,10 @@
       <div class="panel-head">
         <h2>Usuarios activos (<span id="user-count">0</span>)</h2>
         <button class="btn-solid" id="btn-create"><i class="fa-solid fa-user-plus"></i> Nuevo Usuario</button>
+      </div>
+      <div class="filter-row">
+        <input type="search" id="search-users" class="search-input" placeholder="Buscar por nombre o correo...">
+        <div class="filter-chips" id="role-filter-chips"></div>
       </div>
       <div class="table-wrap">
         <table>
@@ -270,22 +308,24 @@
           <input type="email" id="f-email" placeholder="usuario@gmail.com" autocomplete="off"/>
         </div>
 
-        <!-- Rol -->
+        <!-- Roles (multi-selección) -->
         <div class="field">
-          <label>Rol</label>
-          <select id="f-role" required>
-            <option value="">— Seleccionar rol —</option>
-            <option value="admin">👑 Administrador</option>
-            <option value="seller">🏪 Vendedor</option>
-            <option value="cashier">💰 Cajero</option>
-          </select>
+          <label>Roles (puedes seleccionar varios)</label>
+          <div class="role-checks" id="f-roles">
+            <label class="role-check"><input type="checkbox" value="admin"> 👑 Administrador</label>
+            <label class="role-check"><input type="checkbox" value="global_admin"> 🌐 Admin. Global</label>
+            <label class="role-check"><input type="checkbox" value="seller"> 🏪 Vendedor</label>
+            <label class="role-check"><input type="checkbox" value="cashier"> 💰 Cajero</label>
+            <label class="role-check"><input type="checkbox" value="logistics_admin"> 📦 Admin. Logística</label>
+            <label class="role-check"><input type="checkbox" value="logistics_customer"> 🚚 Cliente Logística</label>
+          </div>
         </div>
 
-        <!-- Enviar invitación -->
-        <label class="invite-check">
+        <!-- Enviar invitación (solo para invitados de Google — los usuarios locales no tienen buzón real) -->
+        <label class="invite-check hidden" id="field-sendInvite">
           <input type="checkbox" id="f-sendInvite" checked/>
           Enviar correo de invitación
-          <span id="invite-label-note" style="color:var(--muted);font-size:12px">(enlace para activar cuenta)</span>
+          <span id="invite-label-note" style="color:var(--muted);font-size:12px">(instrucciones para ingresar con Google)</span>
         </label>
 
       </div>
@@ -332,12 +372,15 @@
           <input type="text" id="edit-modal-name" required autocomplete="off"/>
         </div>
         <div class="field">
-          <label>Rol</label>
-          <select id="edit-modal-select" required>
-            <option value="admin">👑 Administrador</option>
-            <option value="seller">🏪 Vendedor</option>
-            <option value="cashier">💰 Cajero</option>
-          </select>
+          <label>Roles (puedes seleccionar varios)</label>
+          <div class="role-checks" id="edit-modal-roles">
+            <label class="role-check"><input type="checkbox" value="admin"> 👑 Administrador</label>
+            <label class="role-check"><input type="checkbox" value="global_admin"> 🌐 Admin. Global</label>
+            <label class="role-check"><input type="checkbox" value="seller"> 🏪 Vendedor</label>
+            <label class="role-check"><input type="checkbox" value="cashier"> 💰 Cajero</label>
+            <label class="role-check"><input type="checkbox" value="logistics_admin"> 📦 Admin. Logística</label>
+            <label class="role-check"><input type="checkbox" value="logistics_customer"> 🚚 Cliente Logística</label>
+          </div>
         </div>
       </div>
       <div class="form-footer">

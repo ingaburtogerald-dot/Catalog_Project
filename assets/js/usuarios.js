@@ -7,6 +7,39 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider }
 let firebaseAuth = null;
 let idToken = null;
 let currentUserEmail = null;
+let allUsers = [];
+let activeRoleFilter = 'all';
+let searchTerm = '';
+
+// ── Roles ──────────────────────────────────────────────────────────────────
+const VALID_ROLES = ['global_admin', 'admin', 'seller', 'cashier', 'logistics_admin', 'logistics_customer'];
+const ROLE_META = {
+  global_admin:       ['role-global_admin', '🌐 Admin. Global'],
+  admin:              ['role-admin',         '👑 Admin'],
+  seller:             ['role-seller',        '🏪 Vendedor'],
+  cashier:            ['role-cashier',       '💰 Cajero'],
+  logistics_admin:    ['role-logistics_admin',    '📦 Admin. Logística'],
+  logistics_customer: ['role-logistics_customer', '🚚 Cliente Logística'],
+};
+
+function getSelectedRoles(containerId) {
+  return [...byId(containerId).querySelectorAll('input[type="checkbox"]:checked')].map((el) => el.value);
+}
+
+function setSelectedRoles(containerId, roles) {
+  byId(containerId).querySelectorAll('input[type="checkbox"]').forEach((el) => {
+    el.checked = roles.includes(el.value);
+    el.closest('.role-check').classList.toggle('checked', el.checked);
+  });
+}
+
+document.querySelectorAll('.role-checks').forEach((group) => {
+  group.addEventListener('change', (e) => {
+    const input = e.target.closest('input[type="checkbox"]');
+    if (!input) return;
+    input.closest('.role-check').classList.toggle('checked', input.checked);
+  });
+});
 
 // ── DOM helpers ────────────────────────────────────────────────────────────
 const byId = id => document.getElementById(id);
@@ -61,13 +94,13 @@ function esc(s) {
 }
 
 function rolePill(role) {
-  const map = {
-    admin:   ['role-admin',   '👑 Admin'],
-    seller:  ['role-seller',  '🏪 Vendedor'],
-    cashier: ['role-cashier', '💰 Cajero'],
-  };
-  const [cls, label] = map[role] || ['role-admin', role ?? '—'];
+  const [cls, label] = ROLE_META[role] || ['role-admin', role ?? '—'];
   return `<span class="role-pill ${cls}">${label}</span>`;
+}
+
+function rolePills(roles) {
+  const list = Array.isArray(roles) && roles.length ? roles : ['—'];
+  return list.map(rolePill).join(' ');
 }
 
 function typePill(type) {
@@ -97,77 +130,127 @@ document.querySelectorAll('.tab').forEach(tab => {
 async function loadUsers() {
   usersTbody.innerHTML = spinnerRow(6);
   try {
-    const users = await api('GET', '/users');
-    userCountEl.textContent = users.length;
-    if (!users.length) {
-      usersTbody.innerHTML = emptyRow(6, '👥', 'No hay usuarios activos. Crea el primero.');
-      return;
-    }
-    usersTbody.innerHTML = users.map(u => {
-      const isSelf      = u.email === currentUserEmail;
-      const isLegacy    = u.legacy === true;
-      const isProtected = u.protected === true;
-
-      const actionCell = () => {
-        if (isProtected) {
-          return `<span title="Administrador principal — protegido del sistema"
-            style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px">
-            <i class="fa-solid fa-shield-halved" style="color:#7c83ff"></i> Protegido
-          </span>`;
-        }
-
-        const editBtn = `
-          <button class="btn-ghost" title="Editar usuario"
-            data-action="edit" data-id="${u.id}" data-name="${esc(u.displayName)}" data-role="${u.role}">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-        `;
-
-        if (isLegacy) {
-          return `
-            ${editBtn}
-            <span title="Usuario legado — se guardará en base de datos al editar"
-              style="font-size:12px;color:var(--muted);margin-left:5px">Legado</span>
-          `;
-        }
-
-        return `
-          ${editBtn}
-          ${isSelf
-            ? `<span style="font-size:12px;color:var(--muted);padding:0 4px">Tú</span>`
-            : `<button class="btn-danger" title="Mover a papelera"
-                data-action="delete" data-id="${u.id}" data-name="${esc(u.displayName)}">
-                <i class="fa-solid fa-trash"></i>
-              </button>`
-          }`;
-      };
-
-      return `<tr>
-        <td>
-          <div class="avatar-cell">
-            ${avatarHtml(u.displayName, u.email)}
-            <div>
-              <div style="font-weight:600;color:var(--heading-color)">
-                ${esc(u.displayName || '—')}
-                ${isProtected ? `<i class="fa-solid fa-shield-halved" title="Admin principal" style="color:#7c83ff;font-size:11px;margin-left:4px"></i>` : ''}
-              </div>
-              ${u.username ? `<div style="font-size:12px;color:var(--muted)">${esc(u.username)}@gyrostore.com</div>` : ''}
-            </div>
-          </div>
-        </td>
-        <td style="color:var(--text-soft);font-size:13px">${esc(u.email)}</td>
-        <td>${rolePill(u.role)}</td>
-        <td>${typePill(u.type)}</td>
-        <td style="color:var(--text-soft);font-size:13px">
-          ${isLegacy ? `<span style="color:var(--muted);font-size:12px">legado</span>` : fmtDate(u.createdAt)}
-        </td>
-        <td><div class="action-row">${actionCell()}</div></td>
-      </tr>`;
-    }).join('');
+    allUsers = await api('GET', '/users');
+    renderStats(allUsers);
+    renderUsersTable();
   } catch (err) {
     toast(`Error cargando usuarios: ${err.message}`);
     usersTbody.innerHTML = emptyRow(6, '⚠️', `Error: ${err.message}`);
   }
+}
+
+function renderStats(users) {
+  const counts = { total: users.length };
+  VALID_ROLES.forEach((r) => { counts[r] = users.filter((u) => (u.roles || []).includes(r)).length; });
+  const cards = [
+    ['total', 'Usuarios', counts.total],
+    ['admin', 'Admins', counts.admin],
+    ['seller', 'Vendedores', counts.seller],
+    ['logistics_admin', 'Logística (admin)', counts.logistics_admin],
+    ['logistics_customer', 'Clientes Logística', counts.logistics_customer],
+  ];
+  byId('stats-row').innerHTML = cards.map(([, label, value]) => `
+    <div class="stat-card"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>
+  `).join('');
+}
+
+function renderRoleFilterChips() {
+  const chips = [['all', 'Todos'], ...VALID_ROLES.map((r) => [r, ROLE_META[r][1]])];
+  byId('role-filter-chips').innerHTML = chips.map(([key, label]) => `
+    <button type="button" class="filter-chip ${activeRoleFilter === key ? 'active' : ''}" data-role-filter="${key}">${label}</button>
+  `).join('');
+}
+renderRoleFilterChips();
+
+byId('role-filter-chips').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-role-filter]');
+  if (!btn) return;
+  activeRoleFilter = btn.dataset.roleFilter;
+  renderRoleFilterChips();
+  renderUsersTable();
+});
+
+byId('search-users').addEventListener('input', (e) => {
+  searchTerm = e.target.value.trim().toLowerCase();
+  renderUsersTable();
+});
+
+function renderUsersTable() {
+  let users = allUsers;
+  if (activeRoleFilter !== 'all') {
+    users = users.filter((u) => (u.roles || []).includes(activeRoleFilter));
+  }
+  if (searchTerm) {
+    users = users.filter((u) =>
+      (u.displayName || '').toLowerCase().includes(searchTerm) || (u.email || '').toLowerCase().includes(searchTerm));
+  }
+
+  userCountEl.textContent = users.length;
+  if (!users.length) {
+    usersTbody.innerHTML = emptyRow(6, '👥', allUsers.length ? 'Sin resultados para este filtro.' : 'No hay usuarios activos. Crea el primero.');
+    return;
+  }
+  usersTbody.innerHTML = users.map(u => {
+    const isSelf      = u.email === currentUserEmail;
+    const isLegacy    = u.legacy === true;
+    const isProtected = u.protected === true;
+
+    const actionCell = () => {
+      if (isProtected) {
+        return `<span title="Administrador principal — protegido del sistema"
+          style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px">
+          <i class="fa-solid fa-shield-halved" style="color:#7c83ff"></i> Protegido
+        </span>`;
+      }
+
+      const editBtn = `
+        <button class="btn-ghost" title="Editar usuario"
+          data-action="edit" data-id="${u.id}" data-name="${esc(u.displayName)}" data-roles='${esc(JSON.stringify(u.roles || []))}'>
+          <i class="fa-solid fa-pen"></i>
+        </button>
+      `;
+
+      if (isLegacy) {
+        return `
+          ${editBtn}
+          <span title="Usuario legado — se guardará en base de datos al editar"
+            style="font-size:12px;color:var(--muted);margin-left:5px">Legado</span>
+        `;
+      }
+
+      return `
+        ${editBtn}
+        ${isSelf
+          ? `<span style="font-size:12px;color:var(--muted);padding:0 4px">Tú</span>`
+          : `<button class="btn-danger" title="Mover a papelera"
+              data-action="delete" data-id="${u.id}" data-name="${esc(u.displayName)}">
+              <i class="fa-solid fa-trash"></i>
+            </button>`
+        }`;
+    };
+
+    return `<tr>
+      <td>
+        <div class="avatar-cell">
+          ${avatarHtml(u.displayName, u.email)}
+          <div>
+            <div style="font-weight:600;color:var(--heading-color)">
+              ${esc(u.displayName || '—')}
+              ${isProtected ? `<i class="fa-solid fa-shield-halved" title="Admin principal" style="color:#7c83ff;font-size:11px;margin-left:4px"></i>` : ''}
+            </div>
+            ${u.username ? `<div style="font-size:12px;color:var(--muted)">${esc(u.username)}@gyrostore.com</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--text-soft);font-size:13px">${esc(u.email)}</td>
+      <td>${rolePills(u.roles)}</td>
+      <td>${typePill(u.type)}</td>
+      <td style="color:var(--text-soft);font-size:13px">
+        ${isLegacy ? `<span style="color:var(--muted);font-size:12px">legado</span>` : fmtDate(u.createdAt)}
+      </td>
+      <td><div class="action-row">${actionCell()}</div></td>
+    </tr>`;
+  }).join('');
 }
 
 // ── Trash ──────────────────────────────────────────────────────────────────
@@ -190,7 +273,7 @@ async function loadTrash() {
           </div>
         </td>
         <td style="color:var(--text-soft);font-size:13px">${esc(u.email)}</td>
-        <td>${rolePill(u.role)}</td>
+        <td>${rolePills(u.roles || (u.role ? [u.role] : []))}</td>
         <td style="color:var(--muted);font-size:13px">${esc(u.deletedBy || '—')}</td>
         <td><span class="days-badge ${dayCls}">${d} día${d !== 1 ? 's' : ''}</span></td>
         <td>
@@ -218,8 +301,8 @@ document.querySelector('section#tab-trash').addEventListener('click', handleTras
 function handleUserAction(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
-  const { action, id, name, role } = btn.dataset;
-  if (action === 'edit')   openEditModal(id, name, role);
+  const { action, id, name, roles } = btn.dataset;
+  if (action === 'edit')   openEditModal(id, name, JSON.parse(roles || '[]'));
   if (action === 'delete') confirmDelete(id, name);
 }
 
@@ -261,10 +344,10 @@ async function confirmPermDelete(id, name) {
 // ── Edit modal ─────────────────────────────────────────────────────────────
 let editTargetId = null;
 
-function openEditModal(id, name, currentRole) {
+function openEditModal(id, name, currentRoles) {
   editTargetId = id;
   byId('edit-modal-name').value = name;
-  byId('edit-modal-select').value = currentRole;
+  setSelectedRoles('edit-modal-roles', currentRoles || []);
   editModal.classList.remove('hidden');
 }
 
@@ -277,9 +360,10 @@ byId('edit-form').onsubmit = async (e) => {
   e.preventDefault();
   if (!editTargetId) return;
   const displayName = byId('edit-modal-name').value.trim();
-  const role = byId('edit-modal-select').value;
+  const roles = getSelectedRoles('edit-modal-roles');
+  if (!roles.length) { toast('Selecciona al menos un rol.'); return; }
   try {
-    await api('PATCH', `/users/${editTargetId}`, { displayName, role });
+    await api('PATCH', `/users/${editTargetId}`, { displayName, roles });
     toast('Usuario actualizado correctamente.');
     editModal.classList.add('hidden');
     editTargetId = null;
@@ -310,21 +394,9 @@ document.querySelectorAll('.type-toggle button').forEach(btn => {
     byId('field-email').classList.toggle('hidden', isLocal);
     byId('f-username').required = isLocal;
     byId('f-email').required = !isLocal;
-    byId('invite-label-note').textContent = isLocal
-      ? '(enlace para activar cuenta)'
-      : '(instrucciones para ingresar con Google)';
+    // Los usuarios locales (@gyrostore.com) no tienen un buzón real — no se les puede enviar invitación.
+    byId('field-sendInvite').classList.toggle('hidden', isLocal);
   });
-});
-
-// Auto-suggest username from display name
-byId('f-displayName').addEventListener('input', () => {
-  if (createType !== 'local') return;
-  const suggested = byId('f-displayName').value.trim()
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/\s+/g, '.')
-    .replace(/[^a-z0-9._-]/g, '');
-  byId('f-username').value = suggested;
 });
 
 function resetCreateForm() {
@@ -333,14 +405,14 @@ function resetCreateForm() {
     b.classList.toggle('active', i === 0));
   byId('field-username').classList.remove('hidden');
   byId('field-email').classList.add('hidden');
+  byId('field-sendInvite').classList.add('hidden');
   byId('f-displayName').value = '';
   byId('f-username').value = '';
   byId('f-email').value = '';
-  byId('f-role').value = '';
+  setSelectedRoles('f-roles', []);
   byId('f-sendInvite').checked = true;
   byId('f-username').required = true;
   byId('f-email').required = false;
-  byId('invite-label-note').textContent = '(enlace para activar cuenta)';
 }
 
 byId('create-form').addEventListener('submit', async e => {
@@ -349,11 +421,19 @@ byId('create-form').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando...';
 
+  const roles = getSelectedRoles('f-roles');
+  if (!roles.length) {
+    toast('Selecciona al menos un rol.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Crear Usuario';
+    return;
+  }
+
   const body = {
     type: createType,
     displayName: byId('f-displayName').value.trim(),
-    role: byId('f-role').value,
-    sendInvite: byId('f-sendInvite').checked,
+    roles,
+    sendInvite: createType === 'local' ? false : byId('f-sendInvite').checked,
   };
   if (createType === 'local') body.username = byId('f-username').value.trim();
   else body.email = byId('f-email').value.trim().toLowerCase();
@@ -403,10 +483,10 @@ byId('close-pass-modal').onclick = byId('close-pass-done').onclick = () => {
   passModal.classList.add('hidden');
 };
 
-// ── Backdrop close ─────────────────────────────────────────────────────────
-[createModal, passModal, editModal].forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
-});
+// Nota: a propósito NO se cierran los modales al hacer clic en el fondo (backdrop),
+// para evitar perder lo que el usuario ya escribió por un clic accidental. Se cierran
+// solo con los botones de Cancelar/Cerrar (X).
+
 
 // ── Row helpers ────────────────────────────────────────────────────────────
 function spinnerRow(cols) {
@@ -456,7 +536,7 @@ async function initAuth() {
       idToken = await user.getIdToken();
       const me = await api('GET', '/auth/me');
 
-      if (me.role !== 'admin') {
+      if (!['admin', 'global_admin'].includes(me.role)) {
         window.location.href = 'vendedor.html';
         return;
       }
@@ -466,6 +546,7 @@ async function initAuth() {
       userEmailEl.textContent = me.email;
 
       localStorage.setItem('gyro_user_role', me.role);
+      localStorage.setItem('gyro_user_roles', JSON.stringify(me.roles || [me.role]));
       localStorage.setItem('gyro_user_name', user.displayName || me.email);
       localStorage.setItem('gyro_user_photo', user.photoURL || '');
 

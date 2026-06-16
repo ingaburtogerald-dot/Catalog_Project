@@ -3,7 +3,23 @@
 const nodemailer = require('nodemailer');
 const config = require('./config');
 
-const ROLE_NAMES = { admin: 'Administrador', seller: 'Vendedor', cashier: 'Cajero' };
+const ROLE_NAMES = {
+  admin: 'Administrador', seller: 'Vendedor', cashier: 'Cajero',
+  global_admin: 'Administrador Global', logistics_admin: 'Admin. Gyro Logistics', logistics_customer: 'Cliente Gyro Logistics',
+};
+
+const LOGISTICS_STATUS_COPY = {
+  recibido_china: {
+    subject: 'Tu paquete fue recibido en nuestra bodega en China',
+    title: '📦 ¡Paquete recibido en China!',
+    body: 'Tu paquete fue confirmado en nuestra bodega en China. El tiempo estimado de llegada a Managua es de <strong>45 a 60 días</strong>.',
+  },
+  recibido_nicaragua: {
+    subject: 'Tu paquete llegó a Nicaragua',
+    title: '🇳🇮 ¡Tu paquete llegó a Nicaragua!',
+    body: 'Tu paquete ya se encuentra en Nicaragua. Nos pondremos en contacto para coordinar la entrega/retiro en Managua.',
+  },
+};
 
 function createTransport() {
   return nodemailer.createTransport({
@@ -88,4 +104,59 @@ async function sendGuestInvite({ to, displayName, role, appUrl }) {
   return true;
 }
 
-module.exports = { sendLocalInvite, sendGuestInvite };
+// Notifica a los admins de Gyro Logistics que un cliente agregó una nueva revisión de paquete.
+async function sendLogisticsAdminAlert({ toEmails, customerName, shippingNumber, purchaseDate, photoUrl }) {
+  if (!config.email.user || !toEmails?.length) return false;
+  const from = config.email.from || `"Gyro Store" <${config.email.user}>`;
+
+  await createTransport().sendMail({
+    from, to: toEmails.join(','),
+    subject: `Gyro Logistics — Nueva revisión de ${customerName}`,
+    html: wrap(`
+      ${header('📦 Nueva revisión de paquete')}
+      <div style="padding:32px;">
+        <p><strong>${customerName}</strong> agregó una nueva compra en Gyro Logistics:</p>
+        <div style="background:#1e293b;border-radius:8px;padding:20px;margin:24px 0;">
+          <p style="margin:0 0 6px;color:#aab2cf;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Fecha de compra</p>
+          <p style="margin:0 0 14px;font-weight:700;">${purchaseDate || '—'}</p>
+          <p style="margin:0 0 6px;color:#aab2cf;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Número de envío</p>
+          <p style="margin:0;font-weight:700;color:#7c83ff;">${shippingNumber || '—'}</p>
+        </div>
+        <p>Confirma con el equipo en China si fue recibido, y actualiza el estado desde el portal.</p>
+        ${photoUrl ? btn(photoUrl, 'Ver foto del paquete') : ''}
+      </div>
+      ${footer()}
+    `),
+  });
+  return true;
+}
+
+// Notifica al cliente que su paquete avanzó de estado (recibido en China / recibido en Nicaragua).
+async function sendLogisticsStatusEmail({ to, customerName, status, comment }) {
+  if (!config.email.user) return false;
+  const copy = LOGISTICS_STATUS_COPY[status];
+  if (!copy) return false;
+  const from = config.email.from || `"Gyro Store" <${config.email.user}>`;
+
+  await createTransport().sendMail({
+    from, to,
+    subject: `Gyro Logistics — ${copy.subject}`,
+    html: wrap(`
+      ${header(copy.title)}
+      <div style="padding:32px;">
+        <p>Hola <strong>${customerName}</strong>,</p>
+        <p>${copy.body}</p>
+        ${comment ? `
+        <div style="background:#1e293b;border-radius:8px;padding:20px;margin:24px 0;">
+          <p style="margin:0 0 6px;color:#aab2cf;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Comentario del equipo</p>
+          <p style="margin:0;">${comment}</p>
+        </div>` : ''}
+        <p style="color:#717a9c;font-size:13px;">Puedes revisar el estado de tu paquete en cualquier momento desde Gyro Logistics.</p>
+      </div>
+      ${footer()}
+    `),
+  });
+  return true;
+}
+
+module.exports = { sendLocalInvite, sendGuestInvite, sendLogisticsAdminAlert, sendLogisticsStatusEmail };

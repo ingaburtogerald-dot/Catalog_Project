@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const os = require('os');
 const config = require('./config');
 
@@ -25,8 +26,19 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/users',    require('./routes/users'));
+app.use('/api/logistics', require('./routes/logistics'));
 
-// Servir frontend estático directamente desde la raíz del proyecto
+// Storefront (home + producto.html) — SPA de React/Vite en frontend/dist.
+// Si todavía no se ha construido (npm run build dentro de frontend/), no se monta nada
+// aquí y caen al index.html/producto.html viejos servidos por publicDir más abajo.
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+const frontendIndexPath = path.join(frontendDist, 'index.html');
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendDist));
+  app.get(['/', '/index.html', '/producto.html'], (req, res) => res.sendFile(frontendIndexPath));
+}
+
+// Servir el resto del sitio (portales internos) directamente desde la raíz del proyecto
 const publicDir = path.join(__dirname, '..');
 app.use(express.static(publicDir));
 

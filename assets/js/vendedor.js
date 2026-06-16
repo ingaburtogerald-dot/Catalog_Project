@@ -291,9 +291,10 @@ async function showPanel(user) {
   localStorage.setItem('gyro_user_name', user.displayName || user.email.split('@')[0] || '');
   localStorage.setItem('gyro_user_photo', user.photoURL || '');
   localStorage.setItem('gyro_user_role', user.role || '');
+  localStorage.setItem('gyro_user_roles', JSON.stringify(user.roles || (user.role ? [user.role] : [])));
 
-  // Si un admin entra por error a vendedor.html, lo redirigimos a admin.html
-  if (user.role === 'admin') {
+  // Si un admin (o global_admin) entra por error a vendedor.html, lo redirigimos a admin.html
+  if (user.role === 'admin' || user.role === 'global_admin') {
     localStorage.removeItem('gyro_admin_dev_mode');
     window.location.href = 'admin.html' + window.location.search;
     return;
@@ -434,7 +435,8 @@ async function init() {
         email: me.email,
         photoURL: user.photoURL,
         displayName: user.displayName || me.email.split('@')[0],
-        role: me.role
+        role: me.role,
+        roles: me.roles
       });
     } catch (err) {
       await signOut(auth);

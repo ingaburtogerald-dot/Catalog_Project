@@ -12,6 +12,11 @@ module.exports = {
   serviceAccountPath: process.env.SERVICE_ACCOUNT_PATH || './server/serviceAccountKey.json',
   oneDriveSharingUrl: process.env.ONEDRIVE_SHARING_URL || '',
 
+  // Roles válidos del sistema. global_admin tiene acceso a todo sin importar el portal.
+  // El orden define la prioridad para elegir el "rol primario" de un usuario multi-rol.
+  validRoles: ['global_admin', 'admin', 'seller', 'cashier', 'logistics_admin', 'logistics_customer'],
+  rolePriority: ['global_admin', 'admin', 'seller', 'cashier', 'logistics_admin', 'logistics_customer'],
+
   // Lista blanca de roles (compatibilidad con sistema anterior)
   adminEmails,
   sellerEmails,
@@ -56,7 +61,13 @@ module.exports = {
     { id: 'bluetooth',    name: 'Bluetooth',        icon: '📶' },
   ],
 
-  collections: { products: 'products', orders: 'orders', purchases: 'purchases', users: 'users', usersDeleted: 'users_deleted' },
+  collections: {
+    products: 'products', orders: 'orders', purchases: 'purchases', users: 'users', usersDeleted: 'users_deleted',
+    logisticsShipments: 'logistics_shipments', appConfig: 'app_config',
+  },
+
+  // Carpeta dentro de Firebase Storage donde se guardan las fotos del portal Gyro Logistics
+  logisticsPhotosFolder: process.env.LOGISTICS_PHOTOS_FOLDER || 'gyro-logistics',
 
   // Dominio interno para usuarios locales
   internalDomain: process.env.INTERNAL_DOMAIN || 'gyrostore.com',

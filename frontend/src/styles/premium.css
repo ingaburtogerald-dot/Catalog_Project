@@ -1,0 +1,286 @@
+/* ============================================================
+   GYRO STORE — Capa visual premium para el nuevo home/detalle
+   No modifica assets/css/style.css (los portales internos lo
+   siguen usando tal cual). Reutiliza los tokens de .store-theme
+   (--grad, --glass, --accent-2/3) ya definidos ahí.
+   ============================================================ */
+
+/* El sidebar/carrito (z-index:50 en style.css) deben quedar SIEMPRE por encima
+   de la barra superior sticky (también z-index:50) para que no se mezclen los
+   logos al abrir el menú. */
+.sidebar, .cart-drawer { z-index: 60; }
+.sidebar-header { background: rgba(10, 13, 28, 0.98); }
+
+/* ── Nav superior (reemplaza el header pesado del sitio viejo) ──
+   header.nav-premium pisa a propósito la regla "header:not(.header-compacto)"
+   de style.css (misma especificidad, pero este archivo se importa después). */
+header.nav-premium {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 12px 24px;
+  background: rgba(8, 10, 22, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-left, .nav-right { display: flex; align-items: center; gap: var(--sp-3); }
+
+.nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-brand img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border-strong, rgba(255,255,255,.18)); }
+.nav-brand span { font-size: 16px; font-weight: 800; letter-spacing: 0.5px; color: var(--heading-color, #fff); }
+
+.nav-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 14px;
+  transition: transform 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.nav-icon-btn:hover { transform: translateY(-2px); color: var(--accent-soft, var(--accent)); border-color: var(--accent); }
+
+.nav-social { display: flex; align-items: center; gap: 8px; }
+
+.nav-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--wa, #25d366);
+  color: #06210f;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nav-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 211, 102, 0.35); }
+
+@media (max-width: 640px) {
+  .nav-social { display: none; }
+  .nav-whatsapp span { display: none; }
+  .nav-brand span { display: none; }
+}
+
+/* ── Hero ── */
+.hero-premium {
+  position: relative;
+  overflow: hidden;
+  padding: 64px var(--sp-5) 56px;
+  text-align: center;
+  isolation: isolate;
+}
+
+.hero-aurora {
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 420px;
+  background: var(--grad);
+  filter: blur(90px);
+  opacity: 0.35;
+  z-index: -1;
+  animation: heroAuroraDrift 18s ease-in-out infinite alternate;
+}
+
+@keyframes heroAuroraDrift {
+  from { transform: translate(-4%, -2%) scale(1); }
+  to { transform: translate(4%, 4%) scale(1.12); }
+}
+
+.hero-content {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-strong, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--accent-soft, var(--accent));
+}
+
+.hero-title {
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--heading-color, #fff);
+  margin: 0;
+}
+
+.hero-title-grad {
+  background: var(--grad);
+  background-size: 180% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-subtitle {
+  max-width: 520px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.hero-search {
+  width: 100%;
+  max-width: 480px;
+  margin-top: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--glass);
+  border: 1.5px solid var(--border);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.hero-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(124, 131, 255, 0.18);
+}
+
+.hero-search .search-icon { color: var(--muted); display: flex; }
+
+.hero-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.hero-meta {
+  margin-top: var(--sp-2);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.hero-meta strong { color: var(--heading-color, #fff); }
+
+.hero-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--wa, #25d366);
+  color: #06210f;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 211, 102, 0.35); }
+
+/* ── Productos destacados ── */
+.featured-strip {
+  padding: 0 var(--sp-5) var(--sp-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.featured-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--heading-color, #fff);
+  margin: 0 0 var(--sp-4);
+}
+
+.featured-title i { color: #fbbf24; }
+
+.featured-row {
+  display: flex;
+  gap: var(--sp-4);
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.featured-card {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
+  border-radius: var(--radius);
+  background: var(--glass);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.featured-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+
+.featured-card a { display: block; color: inherit; text-decoration: none; }
+
+.featured-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.featured-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+}
+
+.featured-card-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--heading-color, #fff);
+}
+
+.featured-card-price {
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #34d399, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (max-width: 640px) {
+  .hero-premium { padding: 48px var(--sp-4) 40px; }
+  .featured-card { flex-basis: 170px; }
+}
