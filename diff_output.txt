@@ -1,0 +1,106 @@
+Created At: 2026-06-16T15:26:54Z
+Completed At: 2026-06-16T15:27:17Z
+The following changes were made by the multi_replace_file_content tool to: c:\Users\Gerald\OneDrive - Contoso\Documents\GitHub\Catalog_Project\assets\js\admin.js. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -1697,437 +1697,6 @@
+   });
+ 
+   // Listeners de Configuración
+-  const btnSettings = $('#btn-settings');
+-  if (btnSettings) btnSettings.addEventListener('click', openSettingsModal);
+-  $('#settings-form')?.addEventListener('submit', submitSettings);
+-
+-  $('#edit-pur-status')?.addEventListener('change', (e) => updateSelectStatusColor(e.target));
+-  $('#bulk-edit-status')?.addEventListener('change', (e) => updateSelectStatusColor(e.target));
+-
+-  const btnLogout = $('#btn-logout');
+-  if (btnLogout) {
+-    btnLogout.addEventListener('click', () => {
+-      closeSettingsModal();
+-      localStorage.removeItem('gyro_admin_logged_in');
+-      localStorage.removeItem('gyro_admin_dev_mode');
+-      const urlParams = new URLSearchParams(window.location.search);
+-      const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
+-      if (isDevMode) {
+-        window.location.href = window.location.pathname;
+-      } else if (auth) {
+-        signOut(auth).catch(() => {});
+-      } else {
+-        showLogin();
+-      }
+-    });
+-  }
+-
+-  // Listeners para filtros de columna estilo Excel
+-  document.querySelectorAll('.excel-filter-trigger').forEach(btn => {
+-    btn.addEventListener('click', (e) => {
+-      e.stopPropagation();
+-      const table = btn.dataset.table;
+-      const col = btn.dataset.col;
+-      openExcelFilterPopover(table, col, btn);
+-    });
+-  });
+-
+-  const popoverSearch = $('#popover-search');
+-  if (popoverSearch) {
+-    popoverSearch.addEventListener('input', handlePopoverSearch);
+-  }
+-
+-  const popoverCancel = $('#popover-cancel-btn');
+-  if (popover
+<truncated 13902 bytes>
+abled  = true;
+-        submitBtn.textContent = 'Iniciando sesión...';
+-
+-        try {
+-          await signInWithEmailAndPassword(auth, 'dev-admin@gyrostore.com', password);
+-          closeModal();
+-        } catch (err) {
+-          let msg = 'Error al iniciar sesión.';
+-          if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+-            msg = 'Contraseña incorrecta.';
+-          } else if (err.code === 'auth/too-many-requests') {
+-            msg = 'Demasiados intentos. Espera un momento.';
+-          }
+-          errEl.textContent   = msg;
+-          errEl.style.display = 'block';
+-          submitBtn.disabled  = false;
+-          submitBtn.textContent = 'Iniciar sesión';
+-        }
+-      });
+-    }
+-  }
+-
+-  // Configuración de Firebase Web
+-  let fbConfig;
+-  try {
+-    fbConfig = await api('/auth/config');
+-  } catch {
+-    return showLogin('No se pudo contactar al servidor.');
+-  }
+-  if (!fbConfig.configured) {
+-    return showLogin('Falta configurar Firebase Web en el archivo .env (FIREBASE_API_KEY, FIREBASE_APP_ID, …).');
+-  }
+-
+-  // Inicializa Firebase Auth
+-  const app = initializeApp(fbConfig);
+-  auth = getAuth(app);
+-
+-  if (urlParams.get('logout') === 'true') {
+-    signOut(auth).then(() => {
+-      window.location.href = urlParams.get('from') || 'index.html';
+-    }).catch(() => {
+-      window.location.href = urlParams.get('from') || 'index.html';
+-    });
+-    return;
+-  }
+-
+-  // Toggle mostrar/ocultar contraseña
+   const btnTogglePass = $('#btn-toggle-password');
+   if (btnTogglePass) {
+     btnTogglePass.addEventListener('click', () => {
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+
+We did our best to apply changes despite some inaccuracies. Double check if the edit applied is what you intended.

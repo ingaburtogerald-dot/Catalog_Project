@@ -1,4 +1,8 @@
+import { useUserRoles } from '../hooks/useUserRoles';
+
 export default function Header({ onOpenMenu }) {
+  const { isLoggedIn } = useUserRoles();
+
   return (
     <header className="nav-premium">
       <div className="nav-left">
@@ -32,6 +36,12 @@ export default function Header({ onOpenMenu }) {
         <a href="https://wa.me/50585944758" target="_blank" rel="noopener" className="nav-whatsapp">
           <i className="fa-brands fa-whatsapp"></i> <span>WhatsApp</span>
         </a>
+        
+        {!isLoggedIn && (
+          <a href="/admin.html" className="btn btn-ghost" style={{ marginLeft: '12px', padding: '6px 16px', fontSize: '13.5px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <i className="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+          </a>
+        )}
       </div>
     </header>
   );

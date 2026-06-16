@@ -1456,7 +1456,8 @@
     <div class="tabs">
       <button class="tab active" data-tab="purchases">Compras China</button>
       <button class="tab" data-tab="stock">Stock <span id="badge-stock-pending" class="badge-dot hidden" style="color: #ef4444; font-size: 10px; margin-left: 4px; vertical-align: middle;">●</span></button>
-      <button class="tab" data-tab="products">Productos</button>
+      <button class="tab" data-tab="products">Inventario</button>
+      <button class="tab" data-tab="catalog-items">Catálogo Público</button>
       <button class="tab" data-tab="orders">Pedidos <span id="badge-orders-pending" class="badge-dot hidden" style="color: #ef4444; font-size: 10px; margin-left: 4px; vertical-align: middle;">●</span></button>
     </div>
 
@@ -1486,10 +1487,28 @@
       </div>
 
       <div class="panel">
-        <h2>Catálogo (<span id="product-count">0</span>)</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2>Items de Inventario (<span id="product-count">0</span>)</h2>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-ghost" id="btn-toggle-trash">🗑️ Ver Papelera</button>
+            <button type="button" class="btn-solid hidden" id="btn-empty-trash" style="background: #ef4444;">🧨 Vaciar Papelera</button>
+          </div>
+        </div>
         <table>
           <thead><tr><th>Nombre</th><th>Categoría</th><th>Stock</th><th class="text-right">Precio</th><th class="text-center" style="width: 150px;">Acciones</th></tr></thead>
           <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Catálogo Público -->
+    <section id="tab-catalog-items" class="hidden">
+      <div class="panel">
+        <h2>Items del Catálogo Público (<span id="catalog-count">0</span>)</h2>
+        <p class="muted-note" style="margin-bottom: 16px;">Vista de solo lectura que muestra cómo están vinculados los items físicos a las publicaciones del catálogo.</p>
+        <table>
+          <thead><tr><th style="width: 80px;">Foto</th><th>Nombre del Ítem</th><th>Fecha Creación</th><th>Códigos Físicos Vinculados (Variantes)</th></tr></thead>
+          <tbody id="catalog-tbody"></tbody>
         </table>
       </div>
     </section>
@@ -1631,6 +1650,7 @@
                       <button type="button" class="excel-filter-trigger" data-table="stock" data-col="product">▼</button>
                     </div>
                   </th>
+                  <th>Categoría</th>
                   <th class="text-right">Fecha Ingreso</th>
                   <th class="text-right">Tiempo Entrega</th>
                   <th class="text-right">Cant.</th>
@@ -1664,6 +1684,7 @@
               <thead>
                 <tr>
                   <th>Código</th>
+                  <th>Categoría</th>
                   <th style="min-width: 280px;">Producto</th>
                   <th class="text-right">Cant.</th>
                   <th class="text-right">Envío Unit. (USD)</th>
@@ -1768,6 +1789,19 @@
           <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-soft);">
             Envío Unitario (USD)
             <input id="review-pur-shipping" type="number" min="0" step="0.0001" required style="padding: 10px 12px; background: var(--input-bg); border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font: inherit; color: var(--input-color); transition: border-color 0.3s;" />
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-soft);">
+            Categoría
+            <select id="review-pur-category" required style="padding: 10px 12px; background: var(--input-bg); border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); font: inherit; color: var(--input-color); transition: border-color 0.3s;">
+              <option value="">Selecciona una categoría...</option>
+              <option value="KZ In-Ear">KZ In-Ear</option>
+              <option value="Accesorios para In-Ear">Accesorios para In-Ear</option>
+              <option value="Mouse">Mouse</option>
+              <option value="Teclados">Teclados</option>
+              <option value="Audífonos para PC">Audífonos para PC</option>
+              <option value="Accesorios para Moto">Accesorios para Moto</option>
+              <option value="Otros">Otros</option>
+            </select>
           </label>
         </div>
         
@@ -1905,7 +1939,7 @@
     </div>
   </div>
 
-  <script src="assets/js/admin.js?v=3" type="module"></script>
+  <script src="assets/js/admin_v2.js" type="module"></script>
   <script src="assets/js/auth-global.js"></script>
 </body>
 </html>

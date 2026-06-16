@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { resolveImageUrl } from '../lib/resolveImageUrl';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function placeholderImg(product, categories) {
   const cat = categories.find((c) => c.id === product.category);
@@ -16,29 +17,60 @@ function placeholderImg(product, categories) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-export function productImg(p, categories, oneDriveSharingUrl) {
-  const raw = (p.images && p.images[0]) || p.img || placeholderImg(p, categories);
-  return resolveImageUrl(raw, oneDriveSharingUrl);
+export function productImg(p, categories) {
+  return (p.images && p.images[0]) || p.img || placeholderImg(p, categories);
 }
 
-export default function ProductCard({ product, categories, index = 0 }) {
+export default function ProductCard({ product, categories, index = 0, isEditMode = false, canEdit = false, onEdit }) {
   const { add, money, config } = useCart();
   const href = `/producto.html?id=${encodeURIComponent(product.id)}`;
   const hasVariants = product.variants && product.variants.length > 1;
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: product.id,
+    disabled: !canEdit || !isEditMode,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 1,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
   return (
     <motion.article
+      ref={setNodeRef}
+      style={style}
       className="card"
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
     >
+      {isEditMode && canEdit && (
+        <div 
+          {...attributes} 
+          {...listeners} 
+          style={{ position: 'absolute', top: '8px', left: '8px', zIndex: 10, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '6px', borderRadius: '50%', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label="Arrastrar"
+        >
+          <i className="fa-solid fa-grip-vertical"></i>
+        </div>
+      )}
+      {isEditMode && (
+        <button 
+          onClick={() => onEdit(product.id)}
+          style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 10, background: 'var(--accent)', color: 'white', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer' }}
+        >
+          ✏️ Editar
+        </button>
+      )}
       <Link className="card-link" to={href} aria-label={`Ver ${product.name}`}>
         <div className="card-media">
           <span className="card-tag">{product.category}</span>
           <img
-            src={productImg(product, categories, config.oneDriveSharingUrl)}
+            src={productImg(product, categories)}
             alt={product.name}
             loading="lazy"
             decoding="async"
@@ -57,7 +89,7 @@ export default function ProductCard({ product, categories, index = 0 }) {
           <button
             className="btn btn--add"
             aria-label={`Agregar ${product.name}`}
-            onClick={() => add({ id: product.id, name: product.name, price: product.price, img: productImg(product, categories, config.oneDriveSharingUrl) })}
+            onClick={() => add({ id: product.id, name: product.name, price: product.price, img: productImg(product, categories) })}
           >
             🛒
           </button>

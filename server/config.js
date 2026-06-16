@@ -63,7 +63,7 @@ module.exports = {
 
   collections: {
     products: 'products', orders: 'orders', purchases: 'purchases', users: 'users', usersDeleted: 'users_deleted',
-    logisticsShipments: 'logistics_shipments', appConfig: 'app_config',
+    logisticsShipments: 'logistics_shipments', appConfig: 'app_config', catalog: 'catalog'
   },
 
   // Carpeta dentro de Firebase Storage donde se guardan las fotos del portal Gyro Logistics

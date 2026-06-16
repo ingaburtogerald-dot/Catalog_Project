@@ -22,7 +22,7 @@ export default function FeaturedStrip({ products, categories }) {
             transition={{ duration: 0.4, delay: Math.min(i * 0.06, 0.3) }}
           >
             <Link to={`/producto.html?id=${encodeURIComponent(p.id)}`}>
-              <img src={productImg(p, categories, config.oneDriveSharingUrl)} alt={p.name} loading="lazy" />
+              <img src={productImg(p, categories)} alt={p.name} loading="lazy" />
               <div className="featured-card-body">
                 <span className="featured-card-name">{p.name}</span>
                 <span className="featured-card-price">{money(p.price)}</span>

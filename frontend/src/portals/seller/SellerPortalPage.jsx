@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PortalLayout from '../layout/PortalLayout';
 import PortalToast from '../layout/PortalToast';
 import NotificationBell from '../layout/NotificationBell';
@@ -27,8 +27,10 @@ export default function SellerPortalPage({ user, signOutPortal }) {
   const { orders, loading, reload, updateStatus } = useSellerOrders(user);
 
   useEffect(() => {
-    fetchConfig().then((cfg) => setCurrency(cfg.currency || 'C$')).catch(() => {});
-    fetchProducts().then(setProducts).catch(() => {});
+    let active = true;
+    fetchConfig().then((cfg) => { if (active) setCurrency(cfg.currency || 'C$'); }).catch(() => {});
+    fetchProducts().then((res) => { if (active) setProducts(res); }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
   const handleNewNotification = useCallback((n) => {
@@ -42,7 +44,7 @@ export default function SellerPortalPage({ user, signOutPortal }) {
 
   const { items: notifications, unreadCount, markAllRead } = useApprovalNotifications(user, handleNewNotification);
 
-  const approvedOrders = orders.filter((o) => o.status === 'approved');
+  const approvedOrders = useMemo(() => orders.filter((o) => o.status === 'approved'), [orders]);
 
   return (
     <PortalLayout

@@ -8,15 +8,29 @@ import {
   signInWithEmailAndPassword,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
+window.clearGyroSession = function() {
+  localStorage.removeItem('gyro_admin_logged_in');
+  localStorage.removeItem('gyro_admin_dev_mode');
+  localStorage.removeItem('gyro_user_name');
+  localStorage.removeItem('gyro_user_photo');
+  localStorage.removeItem('gyro_user_role');
+  localStorage.removeItem('gyro_user_roles');
+  localStorage.removeItem('gyro_last_activity');
+  sessionStorage.removeItem('gyro_welcome_shown');
+};
+
+
 const API = '/api';
 let CONFIG = { currency: 'C$', categories: [] };
 let auth = null;
 let currentPurchaseForEdit = null;
 let currentUserInfo = null;
+let viewingTrash = false;
+let catalogItemsCache = [];
 let allPurchases = [];
 let activePurchasesTab = 'all';
 let currentPurchaseForReview = null;
-let discardPurchaseId = null;
+let discardPurchaseIds = [];
 
 let excelFilters = {
   purchases: { lote: null, code: null, date: null, product: null },
@@ -38,6 +52,7 @@ function switchTab(target) {
 
   $('#tab-stock').classList.toggle('hidden', target !== 'stock');
   $('#tab-products').classList.toggle('hidden', target !== 'products');
+  $('#tab-catalog-items').classList.toggle('hidden', target !== 'catalog-items');
   $('#tab-orders').classList.toggle('hidden', target !== 'orders');
   $('#tab-purchases').classList.toggle('hidden', target !== 'purchases');
 }
@@ -145,27 +160,72 @@ function toast(msg) {
    Productos
    ============================================================ */
 async function loadProducts(cachedProducts = null) {
-  const products = cachedProducts || await api('/products?all=true');
-  $('#product-count').textContent = products.length;
-  $('#products-tbody').innerHTML = products.map((p) => `
-    <tr>
-      <td>${esc(p.name)}</td>
-      <td>${esc(p.category)}</td>
-      <td><span class="status-pill status-delivered" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: none;">Stock: ${p.stock || 0}</span></td>
-      <td class="text-right">${money(p.price)}</td>
-      <td class="row-actions text-center">
-        <button class="edit-btn" data-edit='${esc(JSON.stringify(p))}'>Editar</button>
-        <button class="del-btn" data-del="${esc(p.id)}" data-name="${esc(p.name)}">Borrar</button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="5" class="muted-note">No hay productos.</td></tr>';
-  populateProductsDatalist(products);
-}
+  try {
+    const query = viewingTrash ? '?deleted=true' : '';
+    const products = cachedProducts || await api(`/products${query}`);
+    $('#product-count').textContent = products.length;
+    
+    if (viewingTrash) {
+      $('#products-tbody').innerHTML = products.map((p) => `
+        <tr style="opacity: 0.7; background: rgba(239, 68, 68, 0.05);">
+          <td style="text-decoration: line-through;">${esc(p.name)}</td>
+          <td>${esc(p.category)}</td>
+          <td><span class="status-pill" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none;">Eliminado: ${new Date(p.deletedAt).toLocaleDateString('es-NI')}</span></td>
+          <td class="text-right">${money(p.price)}</td>
+          <td class="row-actions text-center" style="width: auto;">
+            <button class="btn-ghost restore-btn" data-restore="${esc(p.id)}" data-name="${esc(p.name)}" style="color: #10b981;">♻️ Restaurar</button>
+            <button class="btn-ghost del-hard-btn" data-del-hard="${esc(p.id)}" data-name="${esc(p.name)}" style="color: #ef4444;">🧨 Definitivo</button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="muted-note">La papelera está vacía.</td></tr>';
+    } else {
+      $('#products-tbody').innerHTML = products.map((p) => `
+        <tr>
+          <td>${esc(p.name)}</td>
+          <td>${esc(p.category)}</td>
+          <td><span class="status-pill status-delivered" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: none;">Stock: ${p.stock || 0}</span></td>
+          <td class="text-right">${money(p.price)}</td>
+          <td class="row-actions text-center">
+            <button class="edit-btn" data-edit='${esc(JSON.stringify(p))}'>Editar</button>
+            <button class="del-btn" data-del="${esc(p.id)}" data-name="${esc(p.name)}">Borrar</button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="muted-note">No hay productos.</td></tr>';
+    }
+    
+    if (!viewingTrash) populateProductsDatalist(products);
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 function populateProductsDatalist(products) {
   const dl = $('#products-datalist');
   if (!dl) return;
   const names = Array.from(new Set(products.map(p => p.name).filter(Boolean)));
   dl.innerHTML = names.map(name => `<option value="${esc(name)}">`).join('');
+}
+
+async function loadCatalogItemsAdmin() {
+  const catalog = await api('/catalog');
+  $('#catalog-count').textContent = catalog.length;
+  
+  $('#catalog-tbody').innerHTML = catalog.map((c) => {
+    const imgUrl = (c.images && c.images[0]) || c.img || '';
+    const dateStr = c.createdAt ? new Date(c.createdAt._seconds * 1000).toLocaleDateString('es-ES') : 'N/A';
+    const variantsHtml = (c.variants || []).map(v => `<span class="code-badge" style="margin-right: 4px; margin-bottom: 4px;">${esc(v)}</span>`).join('');
+    
+    return `
+      <tr>
+        <td>
+          <div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: var(--input-bg); display: flex; align-items: center; justify-content: center;">
+            ${imgUrl ? `<img src="${esc(imgUrl)}" alt="" style="width: 100%; height: 100%; object-fit: cover;" />` : '🖼️'}
+          </div>
+        </td>
+        <td style="font-weight: 700;">${esc(c.name)}</td>
+        <td style="color: var(--text-soft); font-size: 13px;">${dateStr}</td>
+        <td><div style="display: flex; flex-wrap: wrap;">${variantsHtml || '<span class="muted-note">Sin variantes</span>'}</div></td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="4" class="muted-note text-center">No hay items en el catálogo público.</td></tr>';
 }
 
 function fillCategorySelect() {
@@ -232,12 +292,35 @@ async function submitProduct(e) {
 }
 
 async function deleteProduct(id, name) {
-  if (!confirm(`¿Borrar "${name}"? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`¿Mover "${name}" a la Papelera?`)) return;
   try {
     await api(`/products/${id}`, { method: 'DELETE' });
-    toast('Producto borrado.');
+    toast('Producto movido a la papelera.');
     loadProducts();
-  } catch (err) { toast(`Error: ${err.message}`); }
+  } catch (err) {
+    toast(`Error: ${err.message}`);
+  }
+}
+
+async function restoreProduct(id, name) {
+  try {
+    await api(`/products/${id}/restore`, { method: 'POST' });
+    toast('Producto restaurado.');
+    loadProducts();
+  } catch (err) {
+    toast(`Error: ${err.message}`);
+  }
+}
+
+async function hardDeleteProduct(id, name) {
+  if (!confirm(`¿Eliminar DEFINITIVAMENTE "${name}"?\nSe borrará de forma permanente y se desvinculará del catálogo.\nEsta acción NO se puede deshacer.`)) return;
+  try {
+    await api(`/products/${id}/hard`, { method: 'DELETE' });
+    toast('Producto eliminado definitivamente.');
+    loadProducts();
+  } catch (err) {
+    toast(`Error: ${err.message}`);
+  }
 }
 
 /* ============================================================
@@ -454,6 +537,7 @@ function applyStockFilters() {
     return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
       <td class="col-select"><input type="checkbox" class="stock-select" data-id="${p.id}" /></td>
       <td><strong>${esc(p.code || '—')}</strong></td>
+      <td><span class="badge" style="background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); font-size: 11px;">${esc(p.category || 'Sin Cat')}</span></td>
       <td>${esc(p.product)}</td>
       <td class="text-right">${dateStr}</td>
       <td class="text-right">${daysText}</td>
@@ -468,15 +552,19 @@ function applyStockFilters() {
 
   // Render Pending Stock
   $('#stock-pending-tbody').innerHTML = pendingStock.map((p) => {
-    return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
+    const unitCostVal = typeof p.unitCost === 'number' ? p.unitCost : 0;
+    const totalUsdVal = typeof p.totalUsd === 'number' ? p.totalUsd : (p.qty * unitCostVal);
+    const dateStr = p.date ? new Date(p.date + 'T00:00:00').toLocaleDateString('es-NI') : '—';
+    return `<tr class="clickable-row pending-row" data-purchase='${esc(JSON.stringify(p))}'>
       <td><strong>${esc(p.code || '—')}</strong></td>
+      <td><span class="badge" style="background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); font-size: 11px;">${esc(p.category || 'Sin Cat')}</span></td>
       <td>${esc(p.product)}</td>
       <td class="text-right">${p.qty}</td>
       <td class="text-right">$${(p.shipping || 0).toFixed(4)}</td>
-      <td class="text-right"><strong>$${p.unitCost.toFixed(4)}</strong></td>
-      <td class="text-right">$${p.totalUsd.toFixed(2)}</td>
+      <td class="text-right"><strong>$${unitCostVal.toFixed(4)}</strong></td>
+      <td class="text-right">$${totalUsdVal.toFixed(2)}</td>
       <td class="text-right"><strong style="color: var(--accent);">$${p.totalNio.toFixed(2)}</strong></td>
-      <td class="text-right" style="color: #10b981;">C$${Math.ceil(p.unitCost * p.exchangeRate * 1.40)}</td>
+      <td class="text-right" style="color: #10b981;">C$${Math.ceil(unitCostVal * p.exchangeRate * 1.40)}</td>
       <td class="text-center row-actions">
         <button type="button" class="edit-btn btn-review-approve" data-id="${p.id}" style="margin: 0; padding: 6px 12px; font-weight:700;">Aprobar</button>
         <button type="button" class="del-btn btn-review-discard" data-id="${p.id}" style="margin: 0; padding: 6px 12px; font-weight:700;">Descartar</button>
@@ -539,9 +627,9 @@ function updateStockBulkActionsBar() {
       editBtn.style.cursor = (selected.length === 1) ? 'pointer' : 'not-allowed';
     }
     if (discardBtn) {
-      discardBtn.disabled = (selected.length !== 1);
-      discardBtn.style.opacity = (selected.length === 1) ? '1' : '0.5';
-      discardBtn.style.cursor = (selected.length === 1) ? 'pointer' : 'not-allowed';
+      discardBtn.disabled = false; // Permitir descartar múltiples
+      discardBtn.style.opacity = '1';
+      discardBtn.style.cursor = 'pointer';
     }
   } else {
     bar.classList.add('hidden');
@@ -592,12 +680,14 @@ function openReviewModal(p) {
   if (p.approved === true) {
     $('#review-pur-date').value = p.receiveDate ? p.receiveDate : '';
     $('#review-pur-shipping').value = p.shipping || 0;
+    $('#review-pur-category').value = p.category || '';
     if (modalTitle) modalTitle.textContent = 'Editar Stock';
     if (submitBtn) submitBtn.textContent = 'Guardar Cambios';
     if (reviewDiscardBtn) reviewDiscardBtn.classList.remove('hidden');
   } else {
     $('#review-pur-date').value = '';
     $('#review-pur-shipping').value = '';
+    $('#review-pur-category').value = '';
     if (modalTitle) modalTitle.textContent = 'Revisar Ingreso a Bodega';
     if (submitBtn) submitBtn.textContent = 'Aprobar e Ingresar';
     if (reviewDiscardBtn) reviewDiscardBtn.classList.add('hidden');
@@ -615,17 +705,23 @@ function closeReviewModal() {
 async function submitReviewForm(e) {
   e.preventDefault();
   const id = $('#review-pur-id').value;
-  const receiveDate = $('#review-pur-date').value;
-  const shipping = parseFloat($('#review-pur-shipping').value) || 0;
+  const dateStr = $('#review-pur-date').value;
+  const shippingVal = parseFloat($('#review-pur-shipping').value) || 0;
+  const categoryVal = $('#review-pur-category').value;
+
+  if (!dateStr || !categoryVal) {
+    toast('Por favor completa todos los campos requeridos.');
+    return;
+  }
 
   try {
     const p = currentPurchaseForReview;
     const payload = {
-      ...p,
-      receiveDate,
-      shipping,
+      shipping: shippingVal,
+      status: 'Recibido',
       approved: true,
-      status: 'Recibido'
+      category: categoryVal,
+      receiveDate: dateStr
     };
 
     await api(`/purchases/${id}`, {
@@ -634,11 +730,7 @@ async function submitReviewForm(e) {
       body: JSON.stringify(payload)
     });
 
-    if (p && p.approved === true) {
-      toast('Stock actualizado correctamente.');
-    } else {
-      toast('Producto aprobado e ingresado a bodega.');
-    }
+    toast('Producto actualizado correctamente.');
     closeReviewModal();
     await loadStock();
     await loadPurchases();
@@ -647,16 +739,21 @@ async function submitReviewForm(e) {
   }
 }
 
-function openDiscardModal(id) {
-  discardPurchaseId = id;
-  $('#discard-reason-input').value = '';
-  $('#discard-prompt-modal').classList.remove('hidden');
-  window.updateFilledInputs();
+function openDiscardModal(ids) {
+  try {
+    discardPurchaseIds = Array.isArray(ids) ? ids : [ids];
+    $('#discard-reason-input').value = '';
+    $('#discard-prompt-modal').classList.remove('hidden');
+    window.updateFilledInputs();
+  } catch (err) {
+    toast('Error en openDiscardModal: ' + err.message, 'error');
+    console.error(err);
+  }
 }
 
 function closeDiscardModal() {
   $('#discard-prompt-modal').classList.add('hidden');
-  discardPurchaseId = null;
+  discardPurchaseIds = [];
 }
 
 async function submitDiscard() {
@@ -664,42 +761,26 @@ async function submitDiscard() {
   if (!reason) return toast('El motivo es obligatorio.');
 
   try {
-    const id = discardPurchaseId;
-    const p = allPurchases.find(x => x.id === id);
-    if (!p) return toast('No se encontró el producto a descartar.');
-
-    let comments = [];
-    try {
-      comments = JSON.parse(p.notes || '[]');
-    } catch {
-      if (p.notes) comments = [{ text: p.notes, userName: 'Admin', userPhoto: '', timestamp: 'Fecha anterior' }];
-    }
-    comments.push({
-      text: `Producto descartado. Motivo: ${reason}`,
-      userName: currentUserInfo?.displayName || 'Admin',
-      userPhoto: currentUserInfo?.photoURL || '',
-      timestamp: formatFriendlyDate(new Date())
-    });
-
     const payload = {
-      ...p,
-      status: 'En tránsito',
-      approved: false,
-      notes: JSON.stringify(comments)
+      reason,
+      userName: currentUserInfo?.displayName,
+      userPhoto: currentUserInfo?.photoURL
     };
 
-    await api(`/purchases/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    for (const id of discardPurchaseIds) {
+      await api(`/purchases/${id}/discard`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
 
-    toast('Producto devuelto a estado "En tránsito".');
+    toast(`${discardPurchaseIds.length} producto(s) devuelto(s) a estado "En tránsito".`);
     closeDiscardModal();
-    await loadStock();
     await loadPurchases();
+    await loadStock();
   } catch (err) {
-    toast(`Error al descartar: ${err.message}`);
+    toast(`Error: ${err.message}`);
   }
 }
 
@@ -929,6 +1010,17 @@ function updateBulkActionsBar() {
 async function bulkDeletePurchases() {
   const checked = document.querySelectorAll('.purchase-select:checked');
   if (checked.length === 0) return;
+
+  // Frontend validation: State Machine Block
+  const invalidItems = Array.from(checked).map(cb => {
+    const id = cb.dataset.id;
+    return allPurchases.find(p => p.id === id);
+  }).filter(p => p && p.status !== 'En tránsito' && p.status !== 'Pedido');
+
+  if (invalidItems.length > 0) {
+    return toast('Error: Estás intentando eliminar elementos activos en el stock. Debes descartarlos primero.', 'error');
+  }
+
   if (!confirm(`¿Borrar los ${checked.length} registros de compra seleccionados?`)) return;
 
   let count = 0;
@@ -1501,6 +1593,12 @@ async function submitModalPurchase(e) {
 }
 
 async function deletePurchase(id, desc) {
+  // Frontend validation: State Machine Block
+  const p = allPurchases.find(x => x.id === id);
+  if (p && p.status !== 'En tránsito' && p.status !== 'Pedido') {
+    return toast('Error: Estás intentando eliminar un elemento activo en el stock. Debes descartarlo primero.', 'error');
+  }
+
   if (!confirm(`¿Borrar registro de compra "${desc}"?`)) return;
   try {
     await api(`/purchases/${id}`, { method: 'DELETE' });
@@ -1634,6 +1732,47 @@ async function init() {
   $('#product-form')?.addEventListener('submit', submitProduct);
   $('#cancel-edit')?.addEventListener('click', resetForm);
 
+  $('#btn-clear-pending-notifs')?.addEventListener('click', async () => {
+    if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
+    try {
+      const pending = state.notifications.filter(n => !n.read);
+      await Promise.all(pending.map(n => api(`/logistics/notifications/${n.id}/read`, { method: 'PATCH' })));
+      toast('Notificaciones marcadas como leídas');
+      loadLogistics();
+    } catch (err) {
+      toast(`Error: ${err.message}`);
+    }
+  });
+
+  $('#btn-toggle-trash')?.addEventListener('click', (e) => {
+    viewingTrash = !viewingTrash;
+    const btn = e.target;
+    const emptyBtn = $('#btn-empty-trash');
+    if (viewingTrash) {
+      btn.innerHTML = '🔙 Volver al Inventario';
+      if (emptyBtn) emptyBtn.classList.remove('hidden');
+    } else {
+      btn.innerHTML = '🗑️ Ver Papelera';
+      if (emptyBtn) emptyBtn.classList.add('hidden');
+    }
+    loadProducts();
+  });
+
+  $('#btn-empty-trash')?.addEventListener('click', async () => {
+    if (!confirm('¿Estás SEGURO de vaciar la papelera? Esto borrará definitivamente TODOS los productos en ella y no se puede deshacer.')) return;
+    try {
+      const snap = await api('/products?deleted=true');
+      if (snap.length === 0) return toast('La papelera ya está vacía.');
+      for (const p of snap) {
+        await api(`/products/${p.id}/hard`, { method: 'DELETE' });
+      }
+      toast('Papelera vaciada.');
+      loadProducts();
+    } catch (err) {
+      toast(`Error al vaciar papelera: ${err.message}`);
+    }
+  });
+
   document.addEventListener('input', (e) => {
     if (e.target.closest('.grid-form')) window.updateFilledInputs();
   });
@@ -1694,8 +1833,7 @@ async function init() {
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
       closeSettingsModal();
-      localStorage.removeItem('gyro_admin_logged_in');
-      localStorage.removeItem('gyro_admin_dev_mode');
+      window.clearGyroSession();
       const urlParams = new URLSearchParams(window.location.search);
       const isDevMode = urlParams.get('dev') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'true';
       if (isDevMode) {
@@ -1736,7 +1874,12 @@ async function init() {
   document.querySelectorAll('.tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
+    if (target) {
+      if (target === 'catalog-items' && $('#catalog-tbody').children.length === 0) {
+        loadCatalogItemsAdmin().catch(err => toast('Error cargando catálogo: ' + err.message));
+      }
       switchTab(target);
+    }
       localStorage.setItem('gyro_admin_active_tab', target);
       if (target === 'orders') loadOrders();
       if (target === 'purchases') loadPurchases();
@@ -1785,6 +1928,8 @@ async function init() {
 
     const btnNotifications = e.target.closest('#btn-notifications');
     const notifItem = e.target.closest('.notif-item');
+    const restoreBtn = e.target.closest('.restore-btn');
+    const delHardBtn = e.target.closest('.del-hard-btn');
 
     const btnReviewApprove = e.target.closest('.btn-review-approve');
     const btnReviewDiscard = e.target.closest('.btn-review-discard');
@@ -1824,6 +1969,8 @@ async function init() {
 
     if (edit) startEdit(JSON.parse(edit.dataset.edit));
     if (del) deleteProduct(del.dataset.del, del.dataset.name);
+    if (restoreBtn) restoreProduct(restoreBtn.dataset.restore, restoreBtn.dataset.name);
+    if (delHardBtn) hardDeleteProduct(delHardBtn.dataset.delHard, delHardBtn.dataset.name);
     if (removeItem) {
       removeItem.closest('tr').remove();
       recalculatePurchaseTotals();
@@ -1873,10 +2020,16 @@ async function init() {
       }
     }
     if (btnStockBulkDiscard) {
-      const selected = document.querySelectorAll('.stock-select:checked');
-      if (selected.length === 1) {
-        const id = selected[0].dataset.id;
-        openDiscardModal(id);
+      try {
+        const selected = Array.from(document.querySelectorAll('.stock-select:checked')).map(cb => cb.dataset.id);
+        if (selected.length > 0) {
+          openDiscardModal(selected);
+        } else {
+          toast('No hay productos seleccionados para descartar.', 'error');
+        }
+      } catch (err) {
+        toast('Error en click handler: ' + err.message, 'error');
+        console.error(err);
       }
     }
     if (closeReviewModalBtn || cancelReviewBtn) {
@@ -1996,9 +2149,8 @@ async function init() {
   const isDevMode = urlParams.get('dev') === 'true' || urlParams.get('dev') === 'seller' || localStorage.getItem('gyro_admin_dev_mode') === 'true' || localStorage.getItem('gyro_admin_dev_mode') === 'seller';
 
   if (urlParams.get('logout') === 'true') {
-    localStorage.removeItem('gyro_admin_logged_in');
-    localStorage.removeItem('gyro_admin_dev_mode');
-    if (isDevMode || urlParams.get('logout') === 'true') {
+    window.clearGyroSession();
+    if (isDevMode) {
       const fromPage = urlParams.get('from') || 'index.html';
       window.location.href = fromPage;
       return;
@@ -2105,6 +2257,7 @@ async function init() {
   auth = getAuth(app);
 
   if (urlParams.get('logout') === 'true') {
+    window.clearGyroSession();
     signOut(auth).then(() => {
       window.location.href = urlParams.get('from') || 'index.html';
     }).catch(() => {
@@ -2163,6 +2316,8 @@ async function init() {
         } else if (err.code === 'auth/invalid-email') {
           friendlyMessage = 'Formato de correo electrónico no válido.';
         }
+        
+ 
         showLogin(friendlyMessage);
       }
     });

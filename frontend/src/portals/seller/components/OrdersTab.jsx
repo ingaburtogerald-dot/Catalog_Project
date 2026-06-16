@@ -1,4 +1,5 @@
 const STATUSES = ['pending', 'paid', 'delivered', 'cancelled'];
+const ADMIN_STATUSES = ['pending_approval', 'approved', 'rejected'];
 
 function money(currency, n) { return `${currency}${Number(n || 0).toFixed(2)}`; }
 
@@ -8,7 +9,7 @@ function formatDate(createdAt) {
   return '—';
 }
 
-export default function OrdersTab({ orders, currency, onUpdateStatus, onToast }) {
+export default function OrdersTab({ orders, currency, onUpdateStatus, onToast, isAdmin }) {
   if (!orders.length) {
     return <p className="muted-note">Aún no hay pedidos registrados.</p>;
   }
@@ -16,9 +17,9 @@ export default function OrdersTab({ orders, currency, onUpdateStatus, onToast })
   async function handleStatusChange(id, status) {
     try {
       await onUpdateStatus(id, status);
-      onToast(`Pedido #${id.slice(0, 6)} → ${status}`);
+      if (onToast) onToast(`Pedido #${id.slice(0, 6)} → ${status}`);
     } catch (err) {
-      onToast(`Error: ${err.message}`);
+      if (onToast) onToast(`Error: ${err.message}`);
     }
   }
 
@@ -40,7 +41,8 @@ export default function OrdersTab({ orders, currency, onUpdateStatus, onToast })
             const items = o.lines.map((l) => `${l.name}${l.variant ? ` (${l.variant})` : ''} x${l.qty}`).join(', ');
             const c = o.customer || {};
             const deliv = c.delivery === 'shipping' ? `🚚 ${c.address || ''}` : '🏬 Retiro en tienda';
-            const isFinal = ['pending_approval', 'approved', 'rejected'].includes(o.status);
+            const isFinal = !isAdmin && ['pending_approval', 'approved', 'rejected'].includes(o.status);
+            const statusOptions = isAdmin && ADMIN_STATUSES.includes(o.status) ? ADMIN_STATUSES : STATUSES;
 
             return (
               <tr key={o.id}>
@@ -64,8 +66,9 @@ export default function OrdersTab({ orders, currency, onUpdateStatus, onToast })
                       className={`status-pill status-${o.status}`}
                       value={o.status}
                       onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                      disabled={isAdmin && o.status !== 'pending_approval' && ADMIN_STATUSES.includes(o.status)}
                     >
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   )}
                 </td>

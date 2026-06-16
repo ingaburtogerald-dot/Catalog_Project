@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFirebaseAuth, onAuthStateChanged, signOut } from '../lib/firebaseClient';
 
 // A qué portal redirigir según el rol resuelto, cuando el rol actual no tiene
@@ -117,14 +117,14 @@ export function usePortalAuth(allowedRoles) {
     return () => unsubscribe();
   }, []);
 
-  async function signOutPortal() {
+  const signOutPortal = useCallback(async () => {
     clearGyroSession();
     try {
       const auth = await getFirebaseAuth();
       await signOut(auth).catch(() => {});
     } catch { /* noop */ }
     window.location.href = '/admin.html?logout=true';
-  }
+  }, []);
 
   return { status, user, signOutPortal };
 }

@@ -130,7 +130,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   }
   const existingData = docSnap.data();
 
-  const { lote, code, date, receiveDate, product, qty, cost, tax, shipping, exchangeRate, status, notes, approved } = req.body;
+  const { lote, code, date, receiveDate, product, qty, cost, tax, shipping, exchangeRate, status, notes, approved, category } = req.body;
 
   const cleanCode = String(code || '').trim();
   if (cleanCode) {
@@ -179,9 +179,12 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
     exchangeRate: rate,
     status: targetStatus,
     approved: targetApproved,
+    category: category !== undefined ? String(category || '').trim() : existingData.category || null,
     notes: notes !== undefined ? String(notes || '').trim() : undefined,
     updatedAt: FieldValue.serverTimestamp()
   };
+
+  Object.keys(doc).forEach(k => doc[k] === undefined && delete doc[k]);
 
   await ref.update(doc);
   res.json({ id: req.params.id, ...doc });
@@ -190,10 +193,61 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
 // DELETE /api/purchases/:id
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COL).doc(req.params.id);
-  if (!(await ref.get()).exists) {
+  const docSnap = await ref.get();
+  if (!docSnap.exists) {
     return res.status(404).json({ error: 'Registro de compra no encontrado.' });
   }
+  const existingData = docSnap.data();
+
+  // Bloqueo de Máquina de Estados: No se puede borrar si ya fue Recibido
+  const status = existingData.status || '';
+  if (status !== 'Pedido' && status !== 'En tránsito') {
+    return res.status(400).json({ error: 'Estás intentando eliminar un elemento activo en el stock. Debes descartarlo primero.' });
+  }
+
   await ref.delete();
+  res.json({ ok: true, id: req.params.id });
+}));
+
+// PATCH /api/purchases/:id/discard
+router.patch('/:id/discard', requireAdmin, asyncHandler(async (req, res) => {
+  const ref = db.collection(COL).doc(req.params.id);
+  const docSnap = await ref.get();
+  if (!docSnap.exists) {
+    return res.status(404).json({ error: 'Registro de compra no encontrado.' });
+  }
+
+  const { reason, userName, userPhoto } = req.body;
+  const p = docSnap.data();
+
+  let comments = [];
+  try {
+    comments = JSON.parse(p.notes || '[]');
+  } catch {
+    if (p.notes) comments = [{ text: p.notes, userName: 'Admin', userPhoto: '', timestamp: 'Fecha anterior' }];
+  }
+
+  if (reason) {
+    const formattedDate = new Intl.DateTimeFormat('es-NI', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    }).format(new Date());
+
+    comments.push({
+      text: `Producto descartado. Motivo: ${reason}`,
+      userName: userName || 'Admin',
+      userPhoto: userPhoto || '',
+      timestamp: formattedDate
+    });
+  }
+
+  await ref.update({
+    status: 'En tránsito',
+    approved: false,
+    notes: JSON.stringify(comments),
+    updatedAt: FieldValue.serverTimestamp()
+  });
+
   res.json({ ok: true, id: req.params.id });
 }));
 

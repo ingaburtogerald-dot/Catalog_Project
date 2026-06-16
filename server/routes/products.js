@@ -15,8 +15,18 @@ const CACHE_TTL = 10000; // 10 seconds
 
 // GET /api/products?category=in-ear&q=texto
 router.get('/', asyncHandler(async (req, res) => {
-  const snap = await db.collection(COL).get();
+  const { category, q, all, deleted } = req.query;
+
+  let query = db.collection(COL);
+  const snap = await query.get();
   let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // Filtrar Papelera
+  if (deleted === 'true') {
+    items = items.filter(p => p.deletedAt != null);
+  } else {
+    items = items.filter(p => p.deletedAt == null);
+  }
 
   // Calcular stock desde purchases con caché
   if (!stockCache || Date.now() - stockCacheTime > CACHE_TTL) {
@@ -34,11 +44,12 @@ router.get('/', asyncHandler(async (req, res) => {
   }
 
   items.forEach(item => {
-    item.stock = stockCache[item.id] || 0;
+    // Las compras (purchases) guardan el nombre del producto en "p.product", no el ID.
+    // Por retrocompatibilidad, verificamos tanto por item.name como por item.id.
+    item.stock = stockCache[item.name] || stockCache[item.id] || 0;
   });
 
   // Filtros de categoría y búsqueda
-  const { category, q, all } = req.query;
   if (category && category !== 'all') {
     items = items.filter((p) => p.category === category);
   }
@@ -116,12 +127,44 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   res.json({ id: req.params.id, ...data });
 }));
 
-// DELETE /api/products/:id
+// DELETE /api/products/:id (Soft Delete)
 router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COL).doc(req.params.id);
   if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
-  await ref.delete();
-  res.json({ ok: true, id: req.params.id });
+  await ref.update({ deletedAt: FieldValue.serverTimestamp() });
+  res.json({ ok: true, id: req.params.id, softDeleted: true });
+}));
+
+// POST /api/products/:id/restore
+router.post('/:id/restore', requireAdmin, asyncHandler(async (req, res) => {
+  const ref = db.collection(COL).doc(req.params.id);
+  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+  await ref.update({ deletedAt: FieldValue.delete() });
+  res.json({ ok: true, id: req.params.id, restored: true });
+}));
+
+// DELETE /api/products/:id/hard (Hard Delete + Cascade)
+router.delete('/:id/hard', requireAdmin, asyncHandler(async (req, res) => {
+  const productId = req.params.id;
+  const ref = db.collection(COL).doc(productId);
+  if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
+
+  // Borrado en cascada: remover de los catálogos vinculados
+  const catalogSnap = await db.collection(config.collections.catalog).get();
+  const batch = db.batch();
+  
+  catalogSnap.docs.forEach(doc => {
+    const data = doc.data();
+    if (data.variants && Array.isArray(data.variants) && data.variants.includes(productId)) {
+      const updatedVariants = data.variants.filter(v => v !== productId);
+      batch.update(doc.ref, { variants: updatedVariants });
+    }
+  });
+
+  batch.delete(ref);
+  await batch.commit();
+
+  res.json({ ok: true, id: productId, hardDeleted: true });
 }));
 
 module.exports = router;

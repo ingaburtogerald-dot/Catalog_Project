@@ -15,12 +15,18 @@ function estimateCommission(netProfit) {
 }
 
 let lineIdCounter = 0;
-function newLine() {
-  return { key: ++lineIdCounter, productId: '', qty: 1, sellPrice: '' };
+function newLine(preselectedProduct = null) {
+  return { 
+    key: ++lineIdCounter, 
+    baseName: preselectedProduct ? preselectedProduct.baseName : '',
+    productId: '', 
+    qty: 1, 
+    sellPrice: preselectedProduct ? String(preselectedProduct.price) : '' 
+  };
 }
 
-export default function ReportSaleModal({ products, user, currency, onClose, onSubmitted, onToast }) {
-  const [lines, setLines] = useState([newLine()]);
+export default function ReportSaleModal({ groupedProducts, preselectedProduct, user, currency, onClose, onSuccess, toast }) {
+  const [lines, setLines] = useState([newLine(preselectedProduct)]);
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -30,9 +36,13 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   }
 
+  function handleBaseNameChange(key, baseName) {
+    const group = groupedProducts.find(g => g.baseName === baseName);
+    updateLine(key, { baseName, productId: '', sellPrice: group ? String(group.price) : '' });
+  }
+
   function handleProductChange(key, productId) {
-    const p = products.find((x) => x.id === productId);
-    updateLine(key, { productId, sellPrice: p ? String(p.price) : '' });
+    updateLine(key, { productId });
   }
 
   function handleFileChange(e) {
@@ -44,11 +54,15 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
     reader.readAsDataURL(file);
   }
 
+  const flatProducts = useMemo(() => {
+    return groupedProducts.reduce((acc, group) => [...acc, ...group.variants], []);
+  }, [groupedProducts]);
+
   const { subtotal, estCommission } = useMemo(() => {
     let sub = 0;
     let comm = 0;
     for (const l of lines) {
-      const p = products.find((x) => x.id === l.productId);
+      const p = flatProducts.find((x) => x.id === l.productId);
       const qty = parseInt(l.qty, 10) || 0;
       const sellPrice = parseFloat(l.sellPrice) || 0;
       if (!p || !qty || !sellPrice) continue;
@@ -57,7 +71,7 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
       comm += estimateCommission((sellPrice - estimatedCost) * qty);
     }
     return { subtotal: sub, estCommission: comm };
-  }, [lines, products]);
+  }, [lines, flatProducts]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -66,7 +80,7 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
       .map((l) => ({ id: l.productId, qty: parseInt(l.qty, 10), sellPrice: parseFloat(l.sellPrice) || 0 }));
 
     if (items.length === 0) {
-      onToast('Debe añadir al menos un producto.');
+      toast('Debe añadir al menos un producto completo y cantidad mayor a 0.');
       return;
     }
 
@@ -86,11 +100,11 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
 
-      onToast('¡Venta reportada con éxito!');
-      onSubmitted();
+      toast('¡Venta reportada con éxito!');
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      onToast(`Error al reportar: ${err.message}`);
+      toast(`Error al reportar: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -107,15 +121,26 @@ export default function ReportSaleModal({ products, user, currency, onClose, onS
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {lines.map((l) => (
               <div key={l.key} className="grid-form" style={{ gridTemplateColumns: '2fr 1fr 1fr auto', alignItems: 'end' }}>
-                <label>
-                  Producto
-                  <select value={l.productId} onChange={(e) => handleProductChange(l.key, e.target.value)} required>
-                    <option value="">Seleccione producto...</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} (Disp: {p.stock || 0})</option>
-                    ))}
-                  </select>
-                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label>
+                    Producto General
+                    <select value={l.baseName} onChange={(e) => handleBaseNameChange(l.key, e.target.value)} required>
+                      <option value="">Seleccione producto...</option>
+                      {groupedProducts.map((g) => (
+                        <option key={g.baseName} value={g.baseName}>{g.baseName} (Disp: {g.totalStock || 0})</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Variante / Especificación
+                    <select value={l.productId} onChange={(e) => handleProductChange(l.key, e.target.value)} required disabled={!l.baseName}>
+                      <option value="">Seleccione variante...</option>
+                      {l.baseName && groupedProducts.find(g => g.baseName === l.baseName)?.variants.map((v) => (
+                        <option key={v.id} value={v.id}>{v.variantName} (Disp: {v.stock || 0})</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <label>
                   Cantidad
                   <input

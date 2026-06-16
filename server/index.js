@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const config = require('./config');
+const { startCronJobs } = require('./cron');
 
 require('./firebase'); // inicializa Firebase Admin
 
@@ -23,6 +24,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/products', require('./routes/products'));
+app.use('/api/catalog', require('./routes/catalog'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/users',    require('./routes/users'));
@@ -32,7 +34,7 @@ app.use('/api/logistics', require('./routes/logistics'));
 // *.html a medida que se vaya migrando de vanilla JS a React (ver plan de migración
 // de portales). Si el build aún no existe (npm run build dentro de frontend/), no se
 // monta nada aquí y todas caen a los archivos legacy servidos por publicDir más abajo.
-const REACT_ROUTES = ['/', '/index.html', '/producto.html', '/vendedor.html'];
+const REACT_ROUTES = ['/', '/index.html', '/producto.html', '/vendedor.html', '/catalogo-admin.html'];
 
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendIndexPath = path.join(frontendDist, 'index.html');
@@ -72,7 +74,7 @@ function getLocalIpAddresses() {
 
 app.listen(config.port, '0.0.0.0', () => {
   const localIps = getLocalIpAddresses();
-  console.log(`\n🚀 Gyro Store en línea`);
+  console.log(`\n🚀 Gyro Store en línea (VERSIÓN ACTUALIZADA V5)`);
   console.log(`   Catálogo (Local):     http://localhost:${config.port}/`);
   if (localIps.length > 0) {
     localIps.forEach(ip => {
@@ -83,4 +85,7 @@ app.listen(config.port, '0.0.0.0', () => {
     console.log(`   Admin (Local):        http://localhost:${config.port}/admin.html`);
   }
   console.log(`   API:                  http://localhost:${config.port}/api/products\n`);
+
+  // Iniciar Cron Jobs en background
+  startCronJobs();
 });
