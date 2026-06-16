@@ -243,31 +243,49 @@ async function deleteProduct(id, name) {
 /* ============================================================
    Pedidos
    ============================================================ */
+function renderOrderActionCell(o) {
+  if (o.status === 'pending_approval') {
+    return `<div style="display:flex; gap:6px; justify-content:center;">
+      <button class="btn-ghost" style="padding:6px 10px; font-size:12px; color:#10b981;" data-approve-order="${esc(o.id)}">✔ Aprobar</button>
+      <button class="btn-ghost" style="padding:6px 10px; font-size:12px; color:#ef4444;" data-reject-order="${esc(o.id)}">✖ Rechazar</button>
+    </div>`;
+  }
+  if (o.status === 'approved' || o.status === 'rejected') {
+    return `<span class="status-pill status-${esc(o.status)}">${esc(o.status)}</span>`;
+  }
+  const statuses = ['pending', 'paid', 'delivered', 'cancelled'];
+  return `<select class="status-pill status-${esc(o.status)}" data-order="${esc(o.id)}">
+    ${statuses.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+  </select>`;
+}
+
 async function loadOrders() {
   try {
     const orders = await api('/orders');
+
+    const pendingApprovalCount = orders.filter((o) => o.status === 'pending_approval').length;
+    $('#badge-orders-pending')?.classList.toggle('hidden', pendingApprovalCount === 0);
+
     $('#orders-tbody').innerHTML = orders.map((o) => {
       const items = o.lines.map((l) => `${esc(l.name)}${l.variant ? ` (${esc(l.variant)})` : ''} x${l.qty}`).join(', ');
       const date = o.createdAt && o.createdAt._seconds
         ? new Date(o.createdAt._seconds * 1000).toLocaleString('es-NI') : '—';
       const c = o.customer || {};
       const deliv = c.delivery === 'shipping' ? `🚚 ${esc(c.address || '')}` : '🏬 Retiro en tienda';
-      const cliente = c.name
+      const cliente = c.name && c.name !== 'Venta Directa'
         ? `<strong>${esc(c.name)}</strong><br><small>${esc(c.phone || '')}</small><br><small class="muted-note">${deliv}</small>${c.note ? `<br><small class="muted-note">📝 ${esc(c.note)}</small>` : ''}`
-        : '<span class="muted-note">—</span>';
-      const statuses = ['pending', 'paid', 'delivered', 'cancelled'];
-      const select = `<select class="status-pill status-${esc(o.status)}" data-order="${esc(o.id)}">
-        ${statuses.map((s) => `<option value="${s}" ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
-      </select>`;
+        : (o.sellerName ? `<strong>${esc(o.sellerName)}</strong><br><small class="muted-note">Venta directa (vendedor)</small>` : '<span class="muted-note">—</span>');
+      const commission = o.commissionTotal != null ? money(o.commissionTotal) : '—';
       return `<tr>
         <td>#${esc(o.id.slice(0, 6))}</td>
         <td>${cliente}</td>
         <td>${items}</td>
         <td><strong>${money(o.total)}</strong></td>
-        <td>${select}</td>
+        <td style="text-align:right;">${commission}</td>
+        <td style="text-align:center;">${renderOrderActionCell(o)}</td>
         <td>${date}</td>
       </tr>`;
-    }).join('') || '<tr><td colspan="6" class="muted-note">Aún no hay pedidos.</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="muted-note">Aún no hay pedidos.</td></tr>';
   } catch (err) { toast(`Error al cargar pedidos: ${err.message}`); }
 }
 
@@ -277,6 +295,39 @@ async function updateOrderStatus(id, status) {
     toast(`Pedido #${id.slice(0, 6)} → ${status}`);
     loadOrders();
   } catch (err) { toast(`Error: ${err.message}`); }
+}
+
+async function approveOrder(id) {
+  try {
+    const result = await api(`/orders/${id}/approve`, { method: 'POST' });
+    toast(`Venta aprobada. Comisión: ${money(result.commissionTotal)}`);
+    loadOrders();
+  } catch (err) { toast(`Error al aprobar venta: ${err.message}`); }
+}
+
+let rejectOrderId = null;
+
+function openRejectOrderModal(id) {
+  rejectOrderId = id;
+  $('#reject-order-reason').value = '';
+  $('#reject-order-modal').classList.remove('hidden');
+}
+
+function closeRejectOrderModal() {
+  $('#reject-order-modal').classList.add('hidden');
+  rejectOrderId = null;
+}
+
+async function submitRejectOrder() {
+  const reason = $('#reject-order-reason').value.trim();
+  if (!reason) return toast('El motivo es obligatorio.');
+  try {
+    const id = rejectOrderId;
+    await api(`/orders/${id}/reject`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) });
+    toast('Venta rechazada.');
+    closeRejectOrderModal();
+    loadOrders();
+  } catch (err) { toast(`Error al rechazar venta: ${err.message}`); }
 }
 
 /* ============================================================
@@ -1836,6 +1887,20 @@ async function init() {
     }
     if (confirmDiscardBtn) {
       submitDiscard();
+    }
+    const approveOrderBtn = e.target.closest('[data-approve-order]');
+    if (approveOrderBtn) {
+      approveOrder(approveOrderBtn.dataset.approveOrder);
+    }
+    const rejectOrderBtn = e.target.closest('[data-reject-order]');
+    if (rejectOrderBtn) {
+      openRejectOrderModal(rejectOrderBtn.dataset.rejectOrder);
+    }
+    if (e.target.closest('#cancel-reject-order-btn')) {
+      closeRejectOrderModal();
+    }
+    if (e.target.closest('#confirm-reject-order-btn')) {
+      submitRejectOrder();
     }
     if (editComment) {
       const idx = parseInt(editComment.dataset.index);

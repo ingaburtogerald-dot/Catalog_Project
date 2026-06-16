@@ -246,6 +246,9 @@
     .status-paid { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
     .status-delivered { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
     .status-cancelled { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-pending_approval { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-approved { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
 
     .code-badge {
       display: inline-flex;
@@ -1454,7 +1457,7 @@
       <button class="tab active" data-tab="purchases">Compras China</button>
       <button class="tab" data-tab="stock">Stock <span id="badge-stock-pending" class="badge-dot hidden" style="color: #ef4444; font-size: 10px; margin-left: 4px; vertical-align: middle;">●</span></button>
       <button class="tab" data-tab="products">Productos</button>
-      <button class="tab" data-tab="orders">Pedidos</button>
+      <button class="tab" data-tab="orders">Pedidos <span id="badge-orders-pending" class="badge-dot hidden" style="color: #ef4444; font-size: 10px; margin-left: 4px; vertical-align: middle;">●</span></button>
     </div>
 
     <!-- Productos -->
@@ -1496,7 +1499,7 @@
       <div class="panel">
         <h2>Pedidos recientes</h2>
         <table id="orders-table">
-          <thead><tr><th>Pedido</th><th>Cliente</th><th>Productos</th><th class="text-right">Total</th><th class="text-center">Estado</th><th>Fecha de Compra</th></tr></thead>
+          <thead><tr><th>Pedido</th><th>Cliente</th><th>Productos</th><th class="text-right">Total</th><th class="text-right">Comisión</th><th class="text-center">Estado</th><th>Fecha de Compra</th></tr></thead>
           <tbody id="orders-tbody"></tbody>
         </table>
       </div>
@@ -1878,6 +1881,26 @@
       <div class="form-actions" style="justify-content: flex-end; margin-top: 24px; display: flex; gap: 8px;">
         <button class="btn-ghost" id="cancel-discard-btn">Cancelar</button>
         <button class="btn-solid" id="confirm-discard-btn" style="background: #ef4444; border: none; color: white;">Descartar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Rechazar Venta Reportada -->
+  <div class="modal hidden" id="reject-order-modal" style="z-index: 2000;">
+    <div class="modal-content" style="max-width: 400px; padding: 24px;">
+      <h2 style="margin-top:0; font-size: 18px; color: var(--heading-color);">Rechazar Venta Reportada</h2>
+      <p style="font-size: 14px; color: var(--text-soft); margin-bottom: 16px; line-height: 1.5;">
+        Indica el motivo por el cual rechazas esta venta reportada por el vendedor.
+      </p>
+      <div class="grid-form" style="grid-template-columns: 1fr;">
+        <label>
+          Motivo (Obligatorio)
+          <textarea id="reject-order-reason" rows="3" placeholder="Ej. El producto no coincide con el stock disponible..." style="width: 100%; box-sizing: border-box; border: 1.5px solid var(--input-border); border-radius: var(--radius-sm); padding: 10px; background: var(--input-bg); color: var(--text);"></textarea>
+        </label>
+      </div>
+      <div class="form-actions" style="justify-content: flex-end; margin-top: 24px; display: flex; gap: 8px;">
+        <button class="btn-ghost" id="cancel-reject-order-btn">Cancelar</button>
+        <button class="btn-solid" id="confirm-reject-order-btn" style="background: #ef4444; border: none; color: white;">Rechazar</button>
       </div>
     </div>
   </div>

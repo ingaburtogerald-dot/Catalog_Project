@@ -2,13 +2,17 @@
 // IMPORTANTE: los totales se recalculan SIEMPRE en el servidor con los precios
 // reales de Firestore. Nunca se confía en los precios que manda el cliente.
 const router = require('express').Router();
+const multer = require('multer');
 const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireSeller, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils');
+const storage = require('../storage');
 
 const PRODUCTS = config.collections.products;
 const ORDERS = config.collections.orders;
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
 // Valida y normaliza los datos del cliente.
 function sanitizeCustomer(c) {
@@ -113,10 +117,26 @@ router.post('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// GET /api/orders (admin/seller)
+// GET /api/orders (admin/seller) — un vendedor solo ve sus propias órdenes.
 router.get('/', requireSeller, asyncHandler(async (req, res) => {
-  const snap = await db.collection(ORDERS).orderBy('createdAt', 'desc').limit(100).get();
-  res.json(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  const isAdminLike = req.user.roles.includes('admin') || req.user.roles.includes('global_admin');
+
+  let docs;
+  if (isAdminLike) {
+    const snap = await db.collection(ORDERS).orderBy('createdAt', 'desc').limit(100).get();
+    docs = snap.docs;
+  } else {
+    // Filtro de un solo campo (sin orderBy) para evitar requerir índice compuesto.
+    const snap = await db.collection(ORDERS).where('sellerEmail', '==', req.user.email).get();
+    docs = snap.docs;
+  }
+
+  let orders = docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (!isAdminLike) {
+    orders.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    orders = orders.slice(0, 100);
+  }
+  res.json(orders);
 }));
 
 // PATCH /api/orders/:id  { status } (admin/seller) — pending | paid | delivered | cancelled
@@ -150,9 +170,16 @@ function calculateCommission(netProfit) {
   return netProfit * 0.28;
 }
 
-// POST /api/orders/report (Para vendedores)
-router.post('/report', requireSeller, asyncHandler(async (req, res) => {
-  const { items, customer } = req.body || {};
+// POST /api/orders/report (Para vendedores) — multipart/form-data con foto de comprobante opcional.
+router.post('/report', requireSeller, upload.single('receipt'), asyncHandler(async (req, res) => {
+  let items, customer;
+  try {
+    items = typeof req.body.items === 'string' ? JSON.parse(req.body.items) : req.body.items;
+    customer = typeof req.body.customer === 'string' ? JSON.parse(req.body.customer) : req.body.customer;
+  } catch {
+    return res.status(400).json({ error: 'Datos del reporte inválidos.' });
+  }
+
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'El reporte no tiene productos.' });
   }
@@ -180,6 +207,15 @@ router.post('/report', requireSeller, asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Ningún producto del reporte es válido.' });
   }
 
+  // Foto de comprobante (opcional) — mismo patrón de upload que Gyro Logistics.
+  let receiptUrl = '';
+  if (req.file) {
+    const sellerSlug = storage.sanitizePathSegment(req.user.name || req.user.email.split('@')[0]);
+    const ext = (req.file.originalname.match(/\.[^.]+$/) || ['.jpg'])[0];
+    const filename = `${Date.now()}${ext}`;
+    receiptUrl = await storage.uploadFile(req.file.buffer, `sales-receipts/${sellerSlug}`, filename, req.file.mimetype);
+  }
+
   const order = {
     lines,
     subtotal,
@@ -190,6 +226,7 @@ router.post('/report', requireSeller, asyncHandler(async (req, res) => {
     channel: 'seller',
     sellerEmail: req.user.email,
     sellerName: req.user.name || req.user.email.split('@')[0],
+    receiptUrl,
     createdAt: FieldValue.serverTimestamp(),
   };
 
@@ -280,6 +317,56 @@ router.post('/:id/approve', requireAdmin, asyncHandler(async (req, res) => {
   });
 
   res.json({ ok: true, commissionTotal: totalCommission });
+}));
+
+// POST /api/orders/:id/reject (Para Admins) — simétrico a /approve.
+router.post('/:id/reject', requireAdmin, asyncHandler(async (req, res) => {
+  const { reason } = req.body || {};
+  const ref = db.collection(ORDERS).doc(req.params.id);
+  const doc = await ref.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Venta no encontrada.' });
+
+  const order = doc.data();
+  if (order.status === 'approved') {
+    return res.status(400).json({ error: 'Esta venta ya fue aprobada, no se puede rechazar.' });
+  }
+
+  await ref.update({
+    status: 'rejected',
+    rejectionReason: String(reason || '').trim(),
+    rejectedAt: FieldValue.serverTimestamp(),
+    rejectedBy: req.user.email,
+  });
+
+  res.json({ ok: true });
+}));
+
+// GET /api/orders/notifications?since=<ISO> (Para vendedores)
+// Devuelve solo las órdenes propias aprobadas/rechazadas después de `since`, para polling liviano.
+router.get('/notifications', requireSeller, asyncHandler(async (req, res) => {
+  const since = req.query.since ? new Date(req.query.since) : new Date(0);
+
+  // Filtro de un solo campo (sin orderBy) para evitar requerir índice compuesto.
+  const snap = await db.collection(ORDERS).where('sellerEmail', '==', req.user.email).get();
+
+  const notifications = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((o) => o.status === 'approved' || o.status === 'rejected')
+    .filter((o) => {
+      const changedAt = (o.approvedAt || o.rejectedAt)?.toDate?.();
+      return changedAt && changedAt > since;
+    })
+    .map((o) => ({
+      id: o.id,
+      status: o.status,
+      commissionTotal: o.commissionTotal || 0,
+      rejectionReason: o.rejectionReason || '',
+      productNames: o.lines.map((l) => l.name).join(', '),
+      changedAt: (o.approvedAt || o.rejectedAt).toDate().toISOString(),
+    }))
+    .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt));
+
+  res.json(notifications);
 }));
 
 module.exports = router;

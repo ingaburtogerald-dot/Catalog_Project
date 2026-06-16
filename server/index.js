@@ -28,14 +28,17 @@ app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/users',    require('./routes/users'));
 app.use('/api/logistics', require('./routes/logistics'));
 
-// Storefront (home + producto.html) — SPA de React/Vite en frontend/dist.
-// Si todavía no se ha construido (npm run build dentro de frontend/), no se monta nada
-// aquí y caen al index.html/producto.html viejos servidos por publicDir más abajo.
+// Páginas servidas por la SPA de React/Vite en frontend/dist. Agregar aquí cada
+// *.html a medida que se vaya migrando de vanilla JS a React (ver plan de migración
+// de portales). Si el build aún no existe (npm run build dentro de frontend/), no se
+// monta nada aquí y todas caen a los archivos legacy servidos por publicDir más abajo.
+const REACT_ROUTES = ['/', '/index.html', '/producto.html', '/vendedor.html'];
+
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendIndexPath = path.join(frontendDist, 'index.html');
 if (fs.existsSync(frontendIndexPath)) {
   app.use(express.static(frontendDist));
-  app.get(['/', '/index.html', '/producto.html'], (req, res) => res.sendFile(frontendIndexPath));
+  app.get(REACT_ROUTES, (req, res) => res.sendFile(frontendIndexPath));
 }
 
 // Servir el resto del sitio (portales internos) directamente desde la raíz del proyecto

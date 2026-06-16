@@ -17,6 +17,13 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3000',
       '/assets': 'http://localhost:3000',
+      // Portales internos aún no migrados — servidos por Express. A medida que
+      // cada uno se migre a React (ver plan de migración), quitar su entrada
+      // de aquí para que el dev server de Vite/React la maneje directamente.
+      '/admin.html':        'http://localhost:3000',
+      '/usuarios.html':     'http://localhost:3000',
+      '/analytics.html':    'http://localhost:3000',
+      '/gyrologistics.html': 'http://localhost:3000',
     },
   },
 })
