@@ -78,6 +78,7 @@ module.exports = {
         console.error('⚠️ Error al parsear EMAIL_CONFIG:', err.message);
       }
     }
+    console.log('📧 Mail user configured:', mail.user ? `YES (${mail.user})` : 'NO');
     return mail;
   })(),
 };
