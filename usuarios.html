@@ -318,28 +318,33 @@
   </div>
 </div>
 
-<!-- ── Modal: Cambiar rol ── -->
-<div id="role-modal" class="modal hidden">
+<!-- ── Modal: Editar usuario ── -->
+<div id="edit-modal" class="modal hidden">
   <div class="modal-content" style="max-width:380px">
     <div class="modal-header">
-      <h2>Cambiar rol</h2>
-      <button class="close-btn" id="close-role-modal">&times;</button>
+      <h2>Editar Usuario</h2>
+      <button class="close-btn" id="close-edit-modal">&times;</button>
     </div>
-    <div class="form-body" style="padding:24px">
-      <p style="color:var(--text-soft);font-size:14px">Cambiando rol de <strong id="role-modal-name"></strong>:</p>
-      <div class="field">
-        <label>Nuevo rol</label>
-        <select id="role-modal-select">
-          <option value="admin">👑 Administrador</option>
-          <option value="seller">🏪 Vendedor</option>
-          <option value="cashier">💰 Cajero</option>
-        </select>
+    <form id="edit-form">
+      <div class="form-body" style="padding:24px">
+        <div class="field">
+          <label>Nombre para mostrar</label>
+          <input type="text" id="edit-modal-name" required autocomplete="off"/>
+        </div>
+        <div class="field">
+          <label>Rol</label>
+          <select id="edit-modal-select" required>
+            <option value="admin">👑 Administrador</option>
+            <option value="seller">🏪 Vendedor</option>
+            <option value="cashier">💰 Cajero</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="form-footer">
-      <button class="btn-ghost" id="cancel-role-modal">Cancelar</button>
-      <button class="btn-solid" id="confirm-role-change"><i class="fa-solid fa-check"></i> Guardar rol</button>
-    </div>
+      <div class="form-footer">
+        <button type="button" class="btn-ghost" id="cancel-edit-modal">Cancelar</button>
+        <button type="submit" class="btn-solid" id="confirm-edit-change"><i class="fa-solid fa-check"></i> Guardar cambios</button>
+      </div>
+    </form>
   </div>
 </div>
 

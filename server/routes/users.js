@@ -214,21 +214,98 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   res.status(201).json({ id: ref.id, ...userData, emailSent });
 }));
 
-// PATCH /api/users/:id — cambiar rol
+// PATCH /api/users/:id — editar usuario (nombre y rol)
 router.patch('/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { role } = req.body || {};
-  if (!VALID_ROLES.includes(role))
+  const { displayName, role } = req.body || {};
+  
+  if (role && !VALID_ROLES.includes(role))
     return res.status(400).json({ error: `Rol inválido. Use: ${VALID_ROLES.join(', ')}.` });
 
-  const ref = db.collection(USERS).doc(req.params.id);
+  const id = req.params.id;
+
+  // 1. Manejo de usuarios legados
+  if (id.startsWith('legacy:')) {
+    const email = id.replace(/^legacy:/, '').toLowerCase();
+
+    if (email === config.protectedEmail)
+      return res.status(403).json({ error: 'El administrador principal está protegido y no se puede editar.' });
+
+    // Buscar el usuario en Firebase Auth para obtener su UID real y displayName si no se envía
+    let uid = null;
+    let authDisplayName = '';
+    try {
+      const authUser = await getAuth().getUserByEmail(email);
+      uid = authUser.uid;
+      authDisplayName = authUser.displayName || email.split('@')[0];
+    } catch (err) {
+      return res.status(404).json({ error: 'Usuario no encontrado en Firebase Auth.' });
+    }
+
+    const cleanDisplayName = (displayName || authDisplayName || '').trim();
+    if (!cleanDisplayName)
+      return res.status(400).json({ error: 'El nombre para mostrar es obligatorio.' });
+
+    const isInternal = email.endsWith(`@${config.internalDomain}`);
+    const username = isInternal ? email.split('@')[0] : null;
+
+    // Crear el documento en Firestore
+    const userData = {
+      uid,
+      email,
+      displayName: cleanDisplayName,
+      role: role || 'seller', // valor por defecto razonable
+      type: isInternal ? 'local' : 'guest',
+      status: 'active',
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: req.user.email,
+    };
+    if (username) userData.username = username;
+
+    const ref = await db.collection(USERS).add(userData);
+
+    // Actualizar también en Firebase Auth el displayName
+    try {
+      await getAuth().updateUser(uid, { displayName: cleanDisplayName });
+    } catch (err) {
+      console.error('Error actualizando displayName en Firebase Auth:', err.message);
+    }
+
+    return res.json({ id: ref.id, displayName: cleanDisplayName, role: userData.role });
+  }
+
+  // 2. Manejo de usuarios normales en Firestore
+  const ref = db.collection(USERS).doc(id);
   const snap = await ref.get();
   if (!snap.exists) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
-  if (snap.data().email?.toLowerCase() === config.protectedEmail)
-    return res.status(403).json({ error: 'El administrador principal no puede cambiar de rol.' });
+  const currentData = snap.data();
+  if (currentData.email?.toLowerCase() === config.protectedEmail)
+    return res.status(403).json({ error: 'El administrador principal está protegido y no se puede editar.' });
 
-  await ref.update({ role, updatedAt: FieldValue.serverTimestamp() });
-  res.json({ id: req.params.id, role });
+  const updateData = {};
+  if (role) updateData.role = role;
+  if (displayName !== undefined) {
+    const cleanDisplayName = displayName?.trim();
+    if (!cleanDisplayName)
+      return res.status(400).json({ error: 'El nombre para mostrar es obligatorio.' });
+    updateData.displayName = cleanDisplayName;
+
+    // Actualizar también en Firebase Auth si el usuario tiene UID
+    if (currentData.uid) {
+      try {
+        await getAuth().updateUser(currentData.uid, { displayName: cleanDisplayName });
+      } catch (err) {
+        console.error('Error actualizando displayName en Firebase Auth:', err.message);
+      }
+    }
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    updateData.updatedAt = FieldValue.serverTimestamp();
+    await ref.update(updateData);
+  }
+
+  res.json({ id, ...updateData });
 }));
 
 // DELETE /api/users/:id — soft delete → papelera

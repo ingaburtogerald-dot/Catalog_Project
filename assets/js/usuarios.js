@@ -19,7 +19,7 @@ const usersTbody   = byId('users-tbody');
 const trashTbody   = byId('trash-tbody');
 const createModal  = byId('create-modal');
 const passModal    = byId('pass-modal');
-const roleModal    = byId('role-modal');
+const editModal    = byId('edit-modal');
 const toastEl      = byId('toast');
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -115,15 +115,24 @@ async function loadUsers() {
             <i class="fa-solid fa-shield-halved" style="color:#7c83ff"></i> Protegido
           </span>`;
         }
-        if (isLegacy) {
-          return `<span title="Usuario legado — gestionado por variables de entorno"
-            style="font-size:12px;color:var(--muted)">Legado</span>`;
-        }
-        return `
-          <button class="btn-ghost" title="Cambiar rol"
-            data-action="role" data-id="${u.id}" data-name="${esc(u.displayName)}" data-role="${u.role}">
+
+        const editBtn = `
+          <button class="btn-ghost" title="Editar usuario"
+            data-action="edit" data-id="${u.id}" data-name="${esc(u.displayName)}" data-role="${u.role}">
             <i class="fa-solid fa-pen"></i>
           </button>
+        `;
+
+        if (isLegacy) {
+          return `
+            ${editBtn}
+            <span title="Usuario legado — se guardará en base de datos al editar"
+              style="font-size:12px;color:var(--muted);margin-left:5px">Legado</span>
+          `;
+        }
+
+        return `
+          ${editBtn}
           ${isSelf
             ? `<span style="font-size:12px;color:var(--muted);padding:0 4px">Tú</span>`
             : `<button class="btn-danger" title="Mover a papelera"
@@ -210,7 +219,7 @@ function handleUserAction(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const { action, id, name, role } = btn.dataset;
-  if (action === 'role')   openRoleModal(id, name, role);
+  if (action === 'edit')   openEditModal(id, name, role);
   if (action === 'delete') confirmDelete(id, name);
 }
 
@@ -249,29 +258,31 @@ async function confirmPermDelete(id, name) {
   } catch (err) { toast(err.message); }
 }
 
-// ── Role modal ─────────────────────────────────────────────────────────────
-let roleTargetId = null;
+// ── Edit modal ─────────────────────────────────────────────────────────────
+let editTargetId = null;
 
-function openRoleModal(id, name, currentRole) {
-  roleTargetId = id;
-  byId('role-modal-name').textContent = name;
-  byId('role-modal-select').value = currentRole;
-  roleModal.classList.remove('hidden');
+function openEditModal(id, name, currentRole) {
+  editTargetId = id;
+  byId('edit-modal-name').value = name;
+  byId('edit-modal-select').value = currentRole;
+  editModal.classList.remove('hidden');
 }
 
-byId('close-role-modal').onclick = byId('cancel-role-modal').onclick = () => {
-  roleModal.classList.add('hidden');
-  roleTargetId = null;
+byId('close-edit-modal').onclick = byId('cancel-edit-modal').onclick = () => {
+  editModal.classList.add('hidden');
+  editTargetId = null;
 };
 
-byId('confirm-role-change').onclick = async () => {
-  if (!roleTargetId) return;
-  const role = byId('role-modal-select').value;
+byId('edit-form').onsubmit = async (e) => {
+  e.preventDefault();
+  if (!editTargetId) return;
+  const displayName = byId('edit-modal-name').value.trim();
+  const role = byId('edit-modal-select').value;
   try {
-    await api('PATCH', `/users/${roleTargetId}`, { role });
-    toast('Rol actualizado correctamente.');
-    roleModal.classList.add('hidden');
-    roleTargetId = null;
+    await api('PATCH', `/users/${editTargetId}`, { displayName, role });
+    toast('Usuario actualizado correctamente.');
+    editModal.classList.add('hidden');
+    editTargetId = null;
     loadUsers();
   } catch (err) { toast(err.message); }
 };
@@ -393,7 +404,7 @@ byId('close-pass-modal').onclick = byId('close-pass-done').onclick = () => {
 };
 
 // ── Backdrop close ─────────────────────────────────────────────────────────
-[createModal, passModal, roleModal].forEach(m => {
+[createModal, passModal, editModal].forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
 });
 
