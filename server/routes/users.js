@@ -175,12 +175,14 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     };
     const ref = await db.collection(USERS).add(userData);
 
-    let emailSent = false;
-    if (sendInvite) {
-      try {
-        const resetLink = await getAuth().generatePasswordResetLink(fullEmail);
-        emailSent = await sendLocalInvite({ to: fullEmail, displayName: displayName.trim(), email: fullEmail, role, resetLink });
-      } catch (e) { console.error('Email error:', e.message); }
+    const emailSent = Boolean(config.email.user && sendInvite);
+    if (emailSent) {
+      getAuth().generatePasswordResetLink(fullEmail)
+        .then(resetLink => {
+          sendLocalInvite({ to: fullEmail, displayName: displayName.trim(), email: fullEmail, role, resetLink })
+            .catch(e => console.error('Email sending error:', e.message));
+        })
+        .catch(e => console.error('Error generating password reset link:', e.message));
     }
 
     return res.status(201).json({ id: ref.id, ...userData, tempPassword, emailSent });
@@ -203,12 +205,11 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   };
   const ref = await db.collection(USERS).add(userData);
 
-  let emailSent = false;
-  if (sendInvite) {
-    try {
-      const appUrl = `${req.protocol}://${req.get('host')}`;
-      emailSent = await sendGuestInvite({ to: guestEmail, displayName: displayName.trim(), role, appUrl });
-    } catch (e) { console.error('Email error:', e.message); }
+  const emailSent = Boolean(config.email.user && sendInvite);
+  if (emailSent) {
+    const appUrl = `${req.protocol}://${req.get('host')}`;
+    sendGuestInvite({ to: guestEmail, displayName: displayName.trim(), role, appUrl })
+      .catch(e => console.error('Email sending error:', e.message));
   }
 
   res.status(201).json({ id: ref.id, ...userData, emailSent });
