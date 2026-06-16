@@ -11,6 +11,10 @@ function createTransport() {
     port:   config.email.port,
     secure: config.email.secure,
     auth:   { user: config.email.user, pass: config.email.pass },
+    connectionTimeout: 10000, // 10 segundos
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    family: 4, // Forzar IPv4 para evitar problemas con IPv6 en Render
   });
 }
 
