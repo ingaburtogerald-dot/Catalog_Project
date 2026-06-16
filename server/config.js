@@ -19,15 +19,25 @@ module.exports = {
   // Primer admin en la lista — no puede ser eliminado por nadie
   protectedEmail: (process.env.PROTECTED_ADMIN_EMAIL || adminEmails[0] || '').toLowerCase(),
 
-  // Config pública de la Web App de Firebase (para el login con Google en el admin)
-  firebaseWeb: {
-    apiKey: process.env.FIREBASE_API_KEY || '',
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
-    projectId: process.env.FIREBASE_PROJECT_ID || '',
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: process.env.FIREBASE_APP_ID || '',
-  },
+// Config pública de la Web App de Firebase (para el login con Google en el admin)
+  firebaseWeb: (() => {
+    let web = {
+      apiKey: process.env.FIREBASE_API_KEY || '',
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
+      projectId: process.env.FIREBASE_PROJECT_ID || '',
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+      appId: process.env.FIREBASE_APP_ID || '',
+    };
+    if (process.env.FIREBASE_WEB_CONFIG) {
+      try {
+        web = { ...web, ...JSON.parse(process.env.FIREBASE_WEB_CONFIG) };
+      } catch (err) {
+        console.error('⚠️ Error al parsear FIREBASE_WEB_CONFIG:', err.message);
+      }
+    }
+    return web;
+  })(),
 
   // Datos de negocio (se exponen al frontend vía GET /api/config)
   whatsapp: process.env.WHATSAPP_NUMBER || '50585944758',
@@ -52,12 +62,23 @@ module.exports = {
   internalDomain: process.env.INTERNAL_DOMAIN || 'gyrostore.com',
 
   // Configuración SMTP para correos de invitación (opcional)
-  email: {
-    host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
-    port:   Number(process.env.EMAIL_PORT) || 465,
-    secure: process.env.EMAIL_SECURE !== 'false',
-    user:   process.env.EMAIL_USER   || '',
-    pass:   process.env.EMAIL_PASS   || '',
-    from:   process.env.EMAIL_FROM   || '',
-  },
+  email: (() => {
+    let mail = {
+      host:   process.env.EMAIL_HOST   || 'smtp.gmail.com',
+      port:   Number(process.env.EMAIL_PORT) || 465,
+      secure: process.env.EMAIL_SECURE !== 'false',
+      user:   process.env.EMAIL_USER   || '',
+      pass:   process.env.EMAIL_PASS   || '',
+      from:   process.env.EMAIL_FROM   || '',
+    };
+    if (process.env.EMAIL_CONFIG) {
+      try {
+        mail = { ...mail, ...JSON.parse(process.env.EMAIL_CONFIG) };
+      } catch (err) {
+        console.error('⚠️ Error al parsear EMAIL_CONFIG:', err.message);
+      }
+    }
+    return mail;
+  })(),
 };
+
