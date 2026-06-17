@@ -20,9 +20,9 @@ router.get('/', requireAdmin, asyncHandler(async (req, res) => {
 
 // POST /api/inventory — registrar una compra en China (estado inicial 'china').
 router.post('/', requireAdmin, asyncHandler(async (req, res) => {
-  const { purchaseDate, lote, code, name, qty, costUnit, taxUnit } = req.body || {};
-  if (!lote?.trim() || !code?.trim() || !name?.trim()) {
-    return res.status(400).json({ error: 'Lote, código y nombre son obligatorios.' });
+  const { purchaseDate, lote, code, name, qty, costUnit, taxUnit, category } = req.body || {};
+  if (!lote?.trim() || !code?.trim() || !name?.trim() || !category?.trim()) {
+    return res.status(400).json({ error: 'Lote, código, nombre y categoría son obligatorios.' });
   }
   const qtyN = parseInt(qty, 10) || 0;
   if (qtyN <= 0) return res.status(400).json({ error: 'La cantidad debe ser mayor a 0.' });
@@ -32,6 +32,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
     lote: lote.trim(),
     code: code.trim(),
     name: name.trim(),
+    category: category.trim(),
     qty: qtyN,
     costUnit: num(costUnit),
     taxUnit: num(taxUnit),

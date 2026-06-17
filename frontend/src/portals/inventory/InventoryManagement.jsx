@@ -8,6 +8,184 @@ import { fetchConfig } from '../../lib/api';
 // ─── Constantes del flujo ────────────────────────────────────────────────────
 const EXCHANGE_RATE = 37; // C$ por USD
 
+const categorySuggestions = {
+  'Audífonos In-Ear': ['MICRÓFONO', 'SIN MICRÓFONO', 'NEGRO', 'BLANCO', 'PIN C'],
+  'Cables': ['JACK 3.5 MM', 'JACK 4.4 MM', 'PIN C', 'QDC'],
+  'DACs/Amplificadores': ['BASS', 'HARMAN', 'BLUETOOTH', 'TYPE-C'],
+  'Repuestos': ['ALMOHADILLAS', 'PIN C', 'QDC'],
+  'Otros': ['NEGRO', 'BLANCO', 'GRIS', 'TRANSPARENTE']
+};
+
+const getTagStyle = (tag) => {
+  const t = tag.toLowerCase().trim();
+
+  // Conectores (Azul/Celeste)
+  if (t.includes('jack') || t === 'tipe' || t.includes('type-c') || t.includes('plug')) {
+    return {
+      background: 'rgba(14, 165, 233, 0.12)',
+      border: '1px solid rgba(14, 165, 233, 0.35)',
+      color: '#38bdf8',
+    };
+  }
+  // Bluetooth y Pines (Morado/Violeta)
+  if (t.includes('pin') || t.includes('bluetooth') || t.includes('bt')) {
+    return {
+      background: 'rgba(168, 85, 247, 0.12)',
+      border: '1px solid rgba(168, 85, 247, 0.35)',
+      color: '#c084fc',
+    };
+  }
+  // Micrófono (Verde / Rojo suave)
+  if (t === 'micrófono' || t === 'con micrófono' || t === 'con mic') {
+    return {
+      background: 'rgba(16, 185, 129, 0.12)',
+      border: '1px solid rgba(16, 185, 129, 0.35)',
+      color: '#34d399',
+    };
+  }
+  if (t === 'sin micrófono' || t === 'sin mic') {
+    return {
+      background: 'rgba(239, 68, 68, 0.08)',
+      border: '1px solid rgba(239, 68, 68, 0.25)',
+      color: '#fca5a5',
+    };
+  }
+  // Variantes de sintonización (Rosa / Amarillo)
+  if (t.includes('harman')) {
+    return {
+      background: 'rgba(244, 63, 94, 0.12)',
+      border: '1px solid rgba(244, 63, 94, 0.35)',
+      color: '#fb7185',
+    };
+  }
+  if (t.includes('bass')) {
+    return {
+      background: 'rgba(234, 179, 8, 0.12)',
+      border: '1px solid rgba(234, 179, 8, 0.35)',
+      color: '#facc15',
+    };
+  }
+  // Colores conocidos
+  if (t === 'azul turquesa' || t.includes('turquesa')) {
+    return {
+      background: 'rgba(6, 182, 212, 0.12)',
+      border: '1px solid rgba(6, 182, 212, 0.35)',
+      color: '#22d3ee',
+    };
+  }
+  if (t === 'transparente' || t === 'cristal') {
+    return {
+      background: 'rgba(255, 255, 255, 0.06)',
+      border: '1px solid rgba(255, 255, 255, 0.25)',
+      color: '#e4e4e7',
+    };
+  }
+  if (t === 'negro') {
+    return {
+      background: 'rgba(9, 9, 11, 0.6)',
+      border: '1px solid rgba(63, 63, 70, 0.5)',
+      color: '#fafafa',
+    };
+  }
+  if (t === 'gris') {
+    return {
+      background: 'rgba(113, 113, 122, 0.12)',
+      border: '1px solid rgba(113, 113, 122, 0.35)',
+      color: '#d4d4d8',
+    };
+  }
+
+  // Por defecto (Gris neutro)
+  return {
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-soft)',
+  };
+};
+
+const renderProductName = (name) => {
+  if (!name) return '—';
+  const parts = name.split('|').map(p => p.trim());
+  if (parts.length <= 1) {
+    return <span style={{ fontWeight: 700, color: 'var(--text)' }}>{name}</span>;
+  }
+  const title = parts[0];
+  const tags = parts.slice(1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '220px', whiteSpace: 'normal' }}>
+      <span style={{ fontWeight: 800, fontSize: '13.5px', color: 'var(--heading-color)', lineHeight: 1.25 }}>
+        {title}
+      </span>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+        {tags.map((tag, idx) => {
+          const style = getTagStyle(tag);
+          return (
+            <span
+              key={idx}
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '2px 7px',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+                ...style
+              }}
+            >
+              {tag}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+function KpiCard({ k }) {
+  const isClickable = k.clickable;
+  const isActive = k.active;
+  return (
+    <div 
+      onClick={isClickable ? k.onClick : undefined}
+      style={{ 
+        background: 'var(--surface)', 
+        border: isActive ? `1.5px solid ${k.color}` : '1px solid var(--border)', 
+        borderRadius: '14px', 
+        padding: '16px 18px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '14px',
+        cursor: isClickable ? 'pointer' : 'default',
+        transition: 'all 0.2s ease',
+        boxShadow: isActive ? `0 0 12px \${k.color}20` : 'none',
+        transform: isClickable && isActive ? 'translateY(-1px)' : 'none',
+      }}
+      onMouseEnter={e => {
+        if (isClickable) {
+          e.currentTarget.style.borderColor = k.color;
+          e.currentTarget.style.boxShadow = `0 4px 12px \${k.color}15`;
+        }
+      }}
+      onMouseLeave={e => {
+        if (isClickable) {
+          e.currentTarget.style.borderColor = isActive ? k.color : 'var(--border)';
+          e.currentTarget.style.boxShadow = isActive ? `0 0 12px \${k.color}20` : 'none';
+        }
+      }}
+    >
+      <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: `\${k.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`fa-solid \${k.icon}`} style={{ color: k.color, fontSize: '17px' }}></i>
+      </div>
+      <div>
+        <p style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--heading-color)' }}>{k.value}</p>
+        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-soft)', fontWeight: 600 }}>{k.label}</p>
+      </div>
+    </div>
+  );
+}
+
 // Estados de un ítem dentro del flujo de compra internacional:
 //   'china'    → registrado en China (Pestaña 1)
 //   'pending'  → reportado como recibido en Nicaragua, pendiente de aprobar (2.A)
@@ -93,8 +271,7 @@ function EmptyState({ icon, text }) {
 }
 
 // ─── Menú ⋯ con portal — evita ser recortado por overflow:auto de la tabla ───
-function RowMenu({ item, onEdit }) {
-  const [open, setOpen] = useState(false);
+function RowMenu({ item, open, onToggleOpen, onEdit }) {
   const [pos, setPos]   = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
 
@@ -102,18 +279,18 @@ function RowMenu({ item, onEdit }) {
     e.stopPropagation();
     const r = btnRef.current.getBoundingClientRect();
     setPos({ top: r.bottom + 4, left: r.right - 140 });
-    setOpen(v => !v);
+    onToggleOpen(!open);
   }
 
   useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
+    const close = () => onToggleOpen(false);
     // Bubble phase (no capture). El stopPropagation del div del portal evita que
     // clics DENTRO del menú lleguen aquí. Solo clics FUERA cierran el menú.
     // setTimeout(0) descarta el mismo clic que abrió el menú.
     const t = setTimeout(() => document.addEventListener('click', close), 0);
     return () => { clearTimeout(t); document.removeEventListener('click', close); };
-  }, [open]);
+  }, [open, onToggleOpen]);
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -131,7 +308,7 @@ function RowMenu({ item, onEdit }) {
           onClick={e => e.stopPropagation()}
         >
           <button
-            onClick={() => { onEdit(item); setOpen(false); }}
+            onClick={() => { onEdit(item); onToggleOpen(false); }}
             style={{ width: '100%', padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '9px', fontWeight: 600 }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,131,255,0.08)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -156,13 +333,42 @@ const monthLabel = (ym) => {
 
 // ═══ PESTAÑA 1: Registro de compras en China ═════════════════════════════════
 function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
-  const EMPTY = { purchaseDate: '', lote: '', code: '', name: '', qty: '', costUnit: '', taxUnit: '' };
+  const EMPTY = { purchaseDate: '', lote: '', code: '', name: '', qty: '', costUnit: '', taxUnit: '', category: '' };
   const [form, setForm] = useState(EMPTY);
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const filled = (v) => String(v).trim() !== '';
   const valid = filled(form.purchaseDate) && filled(form.lote) && filled(form.code) && filled(form.name)
-    && Number(form.qty) > 0 && filled(form.costUnit) && filled(form.taxUnit);
+    && filled(form.category) && Number(form.qty) > 0 && filled(form.costUnit) && filled(form.taxUnit);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = tagInput.trim().replace(/,/g, '');
+      if (val && !tags.includes(val)) {
+        setTags([...tags, val]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (idxToRemove) => {
+    setTags(tags.filter((_, idx) => idx !== idxToRemove));
+  };
+
+  const handleAddTag = (tag) => {
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+  };
+
+  const suggestions = useMemo(() => {
+    if (!form.category) return [];
+    return categorySuggestions[form.category] || [];
+  }, [form.category]);
 
   // Totales financieros del set ya filtrado globalmente por el padre
   const totalCost = items.reduce((s, it) => s + (Number(it.costUnit) || 0) * (Number(it.qty) || 0), 0);
@@ -174,8 +380,16 @@ function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onAdd({ ...form });
+      const finalTags = [...tags];
+      const leftover = tagInput.trim().replace(/,/g, '');
+      if (leftover && !finalTags.includes(leftover)) {
+        finalTags.push(leftover);
+      }
+      const finalName = [form.name.trim(), ...finalTags].filter(Boolean).join(' | ');
+      await onAdd({ ...form, name: finalName });
       setForm(EMPTY);
+      setTags([]);
+      setTagInput('');
     } catch {
       /* el componente padre ya mostró el toast de error; conservamos el formulario */
     } finally {
@@ -204,8 +418,106 @@ function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
             <input style={inputStyle} value={form.code} onChange={e => set('code', e.target.value)} placeholder="Ej. IN1" />
           </div>
           <div style={{ gridColumn: 'span 2', minWidth: 0 }}>
-            <label style={labelStyle}>Nombre del producto</label>
+            <label style={labelStyle}>Nombre base del producto</label>
             <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. KZ Castor Pro" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <label style={labelStyle}>Categoría</label>
+            <select
+              style={inputStyle}
+              value={form.category}
+              onChange={e => set('category', e.target.value)}
+              required
+            >
+              <option value="">Seleccione una categoría...</option>
+              <option value="Audífonos In-Ear">Audífonos In-Ear</option>
+              <option value="Cables">Cables</option>
+              <option value="DACs/Amplificadores">DACs/Amplificadores</option>
+              <option value="Repuestos">Repuestos</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+          <div style={{ gridColumn: 'span 3', minWidth: 0 }}>
+            <label style={labelStyle}>Especificaciones / Variantes</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', minHeight: '38px', alignItems: 'center' }}>
+              {tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '5px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
+                    ...getTagStyle(tag)
+                  }}
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(idx)}
+                    style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', fontSize: '10px', opacity: 0.6 }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={tags.length === 0 ? "Escribe y presiona Enter o Coma..." : ""}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  flex: 1,
+                  minWidth: '120px',
+                  padding: '2px 0'
+                }}
+              />
+            </div>
+            {!form.category ? (
+              <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-soft)', fontStyle: 'italic' }}>
+                Selecciona una categoría para ver sugerencias rápidas
+              </div>
+            ) : (
+              suggestions.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-soft)' }}>Sugerencias rápidas:</span>
+                  {suggestions.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleAddTag(s)}
+                      disabled={tags.includes(s)}
+                      style={{
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: tags.includes(s) ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.3px',
+                        opacity: tags.includes(s) ? 0.4 : 1,
+                        transition: 'all 0.15s ease',
+                        ...getTagStyle(s)
+                      }}
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
           </div>
           <div>
             <label style={labelStyle}>Cantidad</label>
@@ -256,7 +568,7 @@ function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
                       <td style={{ ...tdStyle, color: 'var(--text-soft)' }}>{fmtDate(it.purchaseDate)}</td>
                       <td style={tdStyle}><CodePill color="#f59e0b">{it.lote}</CodePill></td>
                       <td style={tdStyle}><CodePill>{it.code}</CodePill></td>
-                      <td style={{ ...tdStyle, fontWeight: 700, whiteSpace: 'normal' }}>{it.name}</td>
+                      <td style={{ ...tdStyle, padding: '12px 14px' }}>{renderProductName(it.name)}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{Number(it.qty) || 0}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{usd(it.costUnit)}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{usd4(it.taxUnit)}</td>
@@ -275,7 +587,12 @@ function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
                       </td>
                       {/* ── Menú ⋯ (portal, sin clip por overflow) ── */}
                       <td style={{ ...tdStyle, textAlign: 'center', padding: '12px 10px' }}>
-                        <RowMenu item={it} onEdit={onEdit} />
+                        <RowMenu
+                          item={it}
+                          open={openMenuId === it.id}
+                          onToggleOpen={(isOpen) => setOpenMenuId(isOpen ? it.id : null)}
+                          onEdit={onEdit}
+                        />
                       </td>
                     </tr>
                   );
@@ -338,7 +655,7 @@ function PendingSubTab({ items, onApprove }) {
                 <tr key={it.id}>
                   <td style={tdStyle}><CodePill color="#f59e0b">{it.lote}</CodePill></td>
                   <td style={tdStyle}><CodePill>{it.code}</CodePill></td>
-                  <td style={{ ...tdStyle, fontWeight: 700, whiteSpace: 'normal' }}>{it.name}</td>
+                  <td style={{ ...tdStyle, padding: '12px 14px' }}>{renderProductName(it.name)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{Number(it.qty) || 0}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{usd(total)}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
@@ -394,7 +711,7 @@ function WarehouseSubTab({ items, categories = [], onEdit, onRevert }) {
               return (
                 <tr key={it.id}>
                   <td style={tdStyle}><CodePill>{it.code}</CodePill></td>
-                  <td style={{ ...tdStyle, fontWeight: 700, whiteSpace: 'normal' }}>{it.name}</td>
+                  <td style={{ ...tdStyle, padding: '12px 14px' }}>{renderProductName(it.name)}</td>
                   <td style={{ ...tdStyle, color: 'var(--text-soft)' }}>{catName(it.category)}</td>
                   <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>{dias == null ? '—' : `${dias} d`}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>{c.qtyIn}</td>
@@ -429,26 +746,67 @@ function WarehouseSubTab({ items, categories = [], onEdit, onRevert }) {
 }
 
 // ═══ Modal de Edición de Compra en China ═════════════════════════════════════
-function ChinaEditModal({ item, onConfirm, onCancel }) {
+function ChinaEditModal({ item, items = [], onConfirm, onCancel }) {
+  const initialParts = (item.name || '').split('|').map(p => p.trim());
+  const initialBaseName = initialParts[0] || '';
+  const initialTags = initialParts.slice(1);
+
   const [form, setForm] = useState({
     purchaseDate: item.purchaseDate || '',
     lote: item.lote || '',
     code: item.code || '',
-    name: item.name || '',
+    name: initialBaseName,
     qty: item.qty ?? '',
     costUnit: item.costUnit ?? '',
     taxUnit: item.taxUnit ?? '',
+    category: item.category || '',
   });
+  const [tags, setTags] = useState(initialTags);
+  const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const filled = (v) => String(v).trim() !== '';
   const valid = filled(form.purchaseDate) && filled(form.lote) && filled(form.code) && filled(form.name)
-    && Number(form.qty) > 0 && filled(form.costUnit) && filled(form.taxUnit);
+    && filled(form.category) && Number(form.qty) > 0 && filled(form.costUnit) && filled(form.taxUnit);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = tagInput.trim().replace(/,/g, '');
+      if (val && !tags.includes(val)) {
+        setTags([...tags, val]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (idxToRemove) => {
+    setTags(tags.filter((_, idx) => idx !== idxToRemove));
+  };
+
+  const handleAddTag = (tag) => {
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+  };
+
+  const suggestions = useMemo(() => {
+    if (!form.category) return [];
+    return categorySuggestions[form.category] || [];
+  }, [form.category]);
 
   async function confirm() {
     if (!valid || saving) return;
     setSaving(true);
-    try { await onConfirm(item.id, { ...form }); }
+    try {
+      const finalTags = [...tags];
+      const leftover = tagInput.trim().replace(/,/g, '');
+      if (leftover && !finalTags.includes(leftover)) {
+        finalTags.push(leftover);
+      }
+      const finalName = [form.name.trim(), ...finalTags].filter(Boolean).join(' | ');
+      await onConfirm(item.id, { ...form, name: finalName });
+    }
     catch { /* el padre muestra el toast */ }
     finally { setSaving(false); }
   }
@@ -457,7 +815,7 @@ function ChinaEditModal({ item, onConfirm, onCancel }) {
     { k: 'purchaseDate', label: 'Fecha de compra', type: 'date' },
     { k: 'lote', label: 'Lote', type: 'text', ph: 'Ej. LT1' },
     { k: 'code', label: 'Código', type: 'text', ph: 'Ej. IN1' },
-    { k: 'name', label: 'Nombre del producto', type: 'text', ph: 'Ej. KZ Castor Pro', full: true },
+    { k: 'name', label: 'Nombre base del producto', type: 'text', ph: 'Ej. KZ Castor Pro', full: true },
     { k: 'qty', label: 'Cantidad', type: 'number', min: '1', step: '1', ph: '0' },
     { k: 'costUnit', label: 'Costo Unit. (USD)', type: 'number', min: '0', step: '0.01', ph: '0.00' },
     { k: 'taxUnit', label: 'Impuesto Unit. (USD)', type: 'number', min: '0', step: '0.0001', ph: '0.0000' },
@@ -476,7 +834,7 @@ function ChinaEditModal({ item, onConfirm, onCancel }) {
         </div>
         <div style={{ padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-            {fields.map(f => (
+            {fields.slice(0, 4).map(f => (
               <div key={f.k} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
                 <label style={labelStyle}>{f.label}</label>
                 <input
@@ -485,6 +843,114 @@ function ChinaEditModal({ item, onConfirm, onCancel }) {
                 />
               </div>
             ))}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Categoría</label>
+              <select
+                style={inputStyle}
+                value={form.category}
+                onChange={e => set('category', e.target.value)}
+                required
+              >
+                <option value="">Seleccione una categoría...</option>
+                <option value="Audífonos In-Ear">Audífonos In-Ear</option>
+                <option value="Cables">Cables</option>
+                <option value="DACs/Amplificadores">DACs/Amplificadores</option>
+                <option value="Repuestos">Repuestos</option>
+                <option value="Otros">Otros</option>
+              </select>
+            </div>
+            {fields.slice(4).map(f => (
+              <div key={f.k} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
+                <label style={labelStyle}>{f.label}</label>
+                <input
+                  style={inputStyle} type={f.type} min={f.min} step={f.step} placeholder={f.ph}
+                  value={form[f.k]} onChange={e => set(f.k, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+          {/* Tags input inside ChinaEditModal */}
+          <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={labelStyle}>Especificaciones / Variantes</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', minHeight: '38px', alignItems: 'center' }}>
+              {tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '5px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
+                    ...getTagStyle(tag)
+                  }}
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(idx)}
+                    style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', fontSize: '10px', opacity: 0.6 }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={tags.length === 0 ? "Escribe y presiona Enter o Coma..." : ""}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text)',
+                  fontSize: '13px',
+                  outline: 'none',
+                  flex: 1,
+                  minWidth: '120px',
+                  padding: '2px 0'
+                }}
+              />
+            </div>
+            {!form.category ? (
+              <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-soft)', fontStyle: 'italic' }}>
+                Selecciona una categoría para ver sugerencias rápidas
+              </div>
+            ) : (
+              suggestions.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-soft)' }}>Sugerencias rápidas:</span>
+                  {suggestions.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleAddTag(s)}
+                      disabled={tags.includes(s)}
+                      style={{
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: tags.includes(s) ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.3px',
+                        opacity: tags.includes(s) ? 0.4 : 1,
+                        transition: 'all 0.15s ease',
+                        ...getTagStyle(s)
+                      }}
+                    >
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
           </div>
           <div style={{ display: 'flex', gap: '10px', paddingTop: '20px' }}>
             <button onClick={onCancel} className="btn-ghost" style={{ flex: 1, padding: '11px' }}>Cancelar</button>
@@ -499,22 +965,72 @@ function ChinaEditModal({ item, onConfirm, onCancel }) {
 }
 
 // ═══ Modal de Aprobación de Ingreso ══════════════════════════════════════════
-function ApproveModal({ item, categories = [], mode = 'approve', onConfirm, onCancel }) {
+function ApproveModal({ item, categories = [], items = [], mode = 'approve', onConfirm, onCancel }) {
   const isEdit = mode === 'edit';
+
+  const initialParts = (item.name || '').split('|').map(p => p.trim());
+  const initialBaseName = initialParts[0] || '';
+  const initialTags = initialParts.slice(1);
+
   const [form, setForm] = useState({
     entryDate: isEdit ? (item.entryDate || '') : '',
     shippingUnit: isEdit ? (item.shippingUnit ?? '') : '',
-    category: isEdit ? (item.category || '') : '',
+    category: item.category || '',
+    name: isEdit ? initialBaseName : item.name,
   });
+
+  const [tags, setTags] = useState(isEdit ? initialTags : []);
+  const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const valid = form.entryDate && form.category.trim();
+
+  const valid = form.entryDate && form.category.trim() && (!isEdit || form.name.trim() !== '');
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = tagInput.trim().replace(/,/g, '');
+      if (val && !tags.includes(val)) {
+        setTags([...tags, val]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (idxToRemove) => {
+    setTags(tags.filter((_, idx) => idx !== idxToRemove));
+  };
+
+  const handleAddTag = (tag) => {
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+  };
+
+  const suggestions = useMemo(() => {
+    if (!isEdit) return [];
+    if (!form.category) return [];
+    return categorySuggestions[form.category] || [];
+  }, [form.category, isEdit]);
 
   async function confirm() {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onConfirm(item.id, { entryDate: form.entryDate, shippingUnit: parseFloat(form.shippingUnit) || 0, category: form.category.trim() });
+      const extra = {
+        entryDate: form.entryDate,
+        shippingUnit: parseFloat(form.shippingUnit) || 0,
+        category: form.category.trim(),
+      };
+      if (isEdit) {
+        const finalTags = [...tags];
+        const leftover = tagInput.trim().replace(/,/g, '');
+        if (leftover && !finalTags.includes(leftover)) {
+          finalTags.push(leftover);
+        }
+        extra.name = [form.name.trim(), ...finalTags].filter(Boolean).join(' | ');
+      }
+      await onConfirm(item.id, extra);
     } catch {
       /* el padre muestra el toast; dejamos el modal abierto para reintentar */
     } finally {
@@ -534,10 +1050,103 @@ function ApproveModal({ item, categories = [], mode = 'approve', onConfirm, onCa
           </button>
         </div>
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: '10px', fontSize: '13px' }}>
-            <strong style={{ color: 'var(--text)' }}>{item.name}</strong>
-            <span style={{ color: 'var(--text-soft)' }}> · Lote {item.lote} · {item.code} · {Number(item.qty) || 0} uds</span>
-          </div>
+          {!isEdit ? (
+            <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: '10px' }}>
+              {renderProductName(item.name)}
+              <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-soft)', fontWeight: 600 }}>
+                Lote {item.lote} · {item.code} · {Number(item.qty) || 0} uds
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label style={labelStyle}>Nombre base del producto</label>
+                <input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. KZ Castor Pro" />
+              </div>
+              <div>
+                <label style={labelStyle}>Especificaciones / Variantes</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', minHeight: '38px', alignItems: 'center' }}>
+                  {tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '5px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.3px',
+                        ...getTagStyle(tag)
+                      }}
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(idx)}
+                        style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', fontSize: '10px', opacity: 0.6 }}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={tags.length === 0 ? "Escribe y presiona Enter o Coma..." : ""}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                      outline: 'none',
+                      flex: 1,
+                      minWidth: '120px',
+                      padding: '2px 0'
+                    }}
+                  />
+                </div>
+                {!form.category ? (
+                  <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-soft)', fontStyle: 'italic' }}>
+                    Selecciona una categoría para ver sugerencias rápidas
+                  </div>
+                ) : (
+                  suggestions.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-soft)' }}>Sugerencias rápidas:</span>
+                      {suggestions.map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => handleAddTag(s)}
+                          disabled={tags.includes(s)}
+                          style={{
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: tags.includes(s) ? 'not-allowed' : 'pointer',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.3px',
+                            opacity: tags.includes(s) ? 0.4 : 1,
+                            transition: 'all 0.15s ease',
+                            ...getTagStyle(s)
+                          }}
+                        >
+                          + {s}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            </>
+          )}
           <div>
             <label style={labelStyle}>Fecha de Ingreso</label>
             <input style={inputStyle} type="date" value={form.entryDate} onChange={e => set('entryDate', e.target.value)} />
@@ -585,6 +1194,7 @@ export default function InventoryManagement({ user, signOutPortal }) {
   // ── Filtros globales — afectan KPIs + todas las pestañas ─────────────────
   const [filterMonth, setFilterMonth] = useState('');
   const [filterLote, setFilterLote]   = useState('');
+  const [statusFilter, setStatusFilter] = useState(null);
 
   const availableMonths = useMemo(() => {
     const s = new Set(items.map(it => String(it.purchaseDate || '').substring(0, 7)).filter(Boolean));
@@ -596,13 +1206,18 @@ export default function InventoryManagement({ user, signOutPortal }) {
     return [...s].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
   }, [items]);
 
-  const filteredItems = useMemo(() => items.filter(it => {
+  const baseFilteredItems = useMemo(() => items.filter(it => {
     if (filterMonth && String(it.purchaseDate || '').substring(0, 7) !== filterMonth) return false;
     if (filterLote  && it.lote !== filterLote) return false;
     return true;
   }), [items, filterMonth, filterLote]);
 
-  const isFiltered = Boolean(filterMonth || filterLote);
+  const filteredItems = useMemo(() => baseFilteredItems.filter(it => {
+    if (statusFilter && it.status !== statusFilter) return false;
+    return true;
+  }), [baseFilteredItems, statusFilter]);
+
+  const isFiltered = Boolean(filterMonth || filterLote || statusFilter);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
@@ -633,6 +1248,27 @@ export default function InventoryManagement({ user, signOutPortal }) {
 
   const pendingItems = filteredItems.filter(i => i.status === 'pending');
   const receivedItems = filteredItems.filter(i => i.status === 'received');
+
+  const handleKpiClick = (status) => {
+    if (status === 'all') {
+      setStatusFilter(null);
+    } else {
+      const isCurrentlyActive = statusFilter === status;
+      const nextStatus = isCurrentlyActive ? null : status;
+      
+      setStatusFilter(nextStatus);
+      
+      if (nextStatus === 'china') {
+        setMainTab('china');
+      } else if (nextStatus === 'pending') {
+        setMainTab('inventory');
+        setSubTab('pending');
+      } else if (nextStatus === 'received') {
+        setMainTab('inventory');
+        setSubTab('warehouse');
+      }
+    }
+  };
 
   async function handleAdd(data) {
     try {
@@ -699,10 +1335,63 @@ export default function InventoryManagement({ user, signOutPortal }) {
   }
 
   const kpis = [
-    { label: 'Compras registradas',  value: filteredItems.length,                                  icon: 'fa-ship',            color: '#7c83ff' },
-    { label: 'Pendiente de aprobar', value: pendingItems.length,                                   icon: 'fa-clipboard-check', color: '#f59e0b' },
-    { label: 'Recibidos en Bodega',  value: receivedItems.length,                                  icon: 'fa-warehouse',       color: '#10b981' },
-    { label: 'En tránsito',          value: filteredItems.filter(i => i.status === 'china').length, icon: 'fa-truck-fast',      color: '#22c55e' },
+    { 
+      label: 'Compras registradas',  
+      value: baseFilteredItems.length,
+      icon: 'fa-ship',            
+      color: '#7c83ff',
+      clickable: true,
+      onClick: () => handleKpiClick('all'),
+      active: statusFilter === null
+    },
+    { 
+      label: 'Pendiente de aprobar', 
+      value: baseFilteredItems.filter(i => i.status === 'pending').length,                                   
+      icon: 'fa-clipboard-check', 
+      color: '#f59e0b',
+      clickable: true,
+      onClick: () => handleKpiClick('pending'),
+      active: statusFilter === 'pending'
+    },
+    { 
+      label: 'Recibidos en Bodega',  
+      value: baseFilteredItems.filter(i => i.status === 'received').length,                                  
+      icon: 'fa-warehouse',       
+      color: '#10b981',
+      clickable: true,
+      onClick: () => handleKpiClick('received'),
+      active: statusFilter === 'received'
+    },
+    { 
+      label: 'En tránsito',          
+      value: baseFilteredItems.filter(i => i.status === 'china').length, 
+      icon: 'fa-truck-fast',      
+      color: '#22c55e',
+      clickable: true,
+      onClick: () => handleKpiClick('china'),
+      active: statusFilter === 'china'
+    },
+    { 
+      label: 'Subtotal (sin imp.)',  
+      value: usd(filteredItems.reduce((s, it) => s + (Number(it.costUnit) || 0) * (Number(it.qty) || 0), 0)),                                        
+      icon: 'fa-file-invoice-dollar', 
+      color: '#38bdf8',
+      clickable: false
+    },
+    { 
+      label: 'Impuestos pagados',    
+      value: usd(filteredItems.reduce((s, it) => s + (Number(it.taxUnit)  || 0) * (Number(it.qty) || 0), 0)),                                         
+      icon: 'fa-percent',         
+      color: '#f59e0b',
+      clickable: false
+    },
+    { 
+      label: 'Total (con imp.)',     
+      value: usd(filteredItems.reduce((s, it) => s + (Number(it.costUnit) || 0) * (Number(it.qty) || 0), 0) + filteredItems.reduce((s, it) => s + (Number(it.taxUnit)  || 0) * (Number(it.qty) || 0), 0)),                                         
+      icon: 'fa-wallet',          
+      color: '#7c83ff',
+      clickable: false
+    },
   ];
 
   return (
@@ -736,7 +1425,7 @@ export default function InventoryManagement({ user, signOutPortal }) {
                   <>
                     <button
                       type="button"
-                      onClick={() => { setFilterMonth(''); setFilterLote(''); }}
+                      onClick={() => { setFilterMonth(''); setFilterLote(''); setStatusFilter(null); }}
                       style={{ padding: '9px 13px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-soft)', cursor: 'pointer', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-end' }}
                     >
                       <i className="fa-solid fa-xmark"></i> Limpiar filtros
@@ -752,26 +1441,18 @@ export default function InventoryManagement({ user, signOutPortal }) {
             {/* KPIs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '22px' }}>
               {kpis.map(k => (
-                <div key={k.label} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: `${k.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <i className={`fa-solid ${k.icon}`} style={{ color: k.color, fontSize: '17px' }}></i>
-                  </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: 'var(--heading-color)' }}>{k.value}</p>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-soft)', fontWeight: 600 }}>{k.label}</p>
-                  </div>
-                </div>
+                <KpiCard key={k.label} k={k} />
               ))}
             </div>
 
             {/* Pestañas principales */}
             <div className="tabs" style={{ marginBottom: '18px' }}>
-              <button className={`tab${mainTab === 'china' ? ' active' : ''}`} onClick={() => setMainTab('china')}>
+              <button className={`tab${mainTab === 'china' ? ' active' : ''}`} onClick={() => { setMainTab('china'); setStatusFilter(null); }}>
                 <i className="fa-solid fa-cart-shopping" style={{ marginRight: '7px' }}></i>
                 Registro de compras en China
                 {items.length > 0 && <span style={{ marginLeft: '7px', opacity: 0.7 }}>({items.length})</span>}
               </button>
-              <button className={`tab${mainTab === 'inventory' ? ' active' : ''}`} onClick={() => setMainTab('inventory')}>
+              <button className={`tab${mainTab === 'inventory' ? ' active' : ''}`} onClick={() => { setMainTab('inventory'); setStatusFilter(null); }}>
                 <i className="fa-solid fa-boxes-stacked" style={{ marginRight: '7px' }}></i>
                 Inventario
                 {(pendingItems.length + receivedItems.length) > 0 && <span style={{ marginLeft: '7px', opacity: 0.7 }}>({pendingItems.length + receivedItems.length})</span>}
@@ -786,12 +1467,12 @@ export default function InventoryManagement({ user, signOutPortal }) {
               <>
                 {/* Sub-pestañas */}
                 <div className="tabs" style={{ marginBottom: '16px', background: 'rgba(0,0,0,0.12)' }}>
-                  <button className={`tab${subTab === 'pending' ? ' active' : ''}`} onClick={() => setSubTab('pending')}>
+                  <button className={`tab${subTab === 'pending' ? ' active' : ''}`} onClick={() => { setSubTab('pending'); setStatusFilter(null); }}>
                     <i className="fa-solid fa-clock" style={{ marginRight: '7px' }}></i>
                     Pendiente de aprobar
                     {pendingItems.length > 0 && <span style={{ marginLeft: '7px', opacity: 0.7 }}>({pendingItems.length})</span>}
                   </button>
-                  <button className={`tab${subTab === 'warehouse' ? ' active' : ''}`} onClick={() => setSubTab('warehouse')}>
+                  <button className={`tab${subTab === 'warehouse' ? ' active' : ''}`} onClick={() => { setSubTab('warehouse'); setStatusFilter(null); }}>
                     <i className="fa-solid fa-warehouse" style={{ marginRight: '7px' }}></i>
                     Inventario en Bodega
                     {receivedItems.length > 0 && <span style={{ marginLeft: '7px', opacity: 0.7 }}>({receivedItems.length})</span>}
@@ -812,17 +1493,25 @@ export default function InventoryManagement({ user, signOutPortal }) {
       )}
 
       {editChinaTarget && (
-        <ChinaEditModal item={editChinaTarget} onConfirm={handleEditChina} onCancel={() => setEditChinaTarget(null)} />
+        <ChinaEditModal item={editChinaTarget} items={items} onConfirm={handleEditChina} onCancel={() => setEditChinaTarget(null)} />
       )}
 
       {editWarehouseTarget && (
-        <ApproveModal item={editWarehouseTarget} categories={categories} mode="edit" onConfirm={handleEditWarehouse} onCancel={() => setEditWarehouseTarget(null)} />
+        <ApproveModal item={editWarehouseTarget} categories={categories} items={items} mode="edit" onConfirm={handleEditWarehouse} onCancel={() => setEditWarehouseTarget(null)} />
       )}
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 18px', fontSize: '14px', fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.3)', zIndex: 600, display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '360px' }}>
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 18px', fontSize: '14px', fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.3)', zIndex: 600, display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '360px' }}>
           <i className="fa-solid fa-circle-check" style={{ color: '#10b981', flexShrink: 0 }}></i>
-          {toast}
+          <span style={{ flexGrow: 1 }}>{toast}</span>
+          <button 
+            onClick={() => setToast('')} 
+            style={{ all: 'unset', cursor: 'pointer', color: 'var(--text-soft)', padding: '2px 4px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-soft)'}
+          >
+            <i className="fa-solid fa-xmark"></i>
+          </button>
         </div>
       )}
     </PortalLayout>
