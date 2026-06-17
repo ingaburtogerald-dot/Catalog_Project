@@ -29,7 +29,7 @@ export default function Header({ onOpenMenu }) {
           <a href="https://www.tiktok.com/@gyro_store" target="_blank" rel="noopener" className="nav-icon-btn" title="TikTok">
             <i className="fa-brands fa-tiktok"></i>
           </a>
-          <a href="/gyrologistics.html" className="nav-icon-btn" title="Gyro Logistics — Seguimiento de tus compras desde China">
+          <a href="/gyrologistics" className="nav-icon-btn" title="Gyro Logistics — Seguimiento de tus compras desde China">
             <i className="fa-solid fa-box"></i>
           </a>
           <a href="https://maps.app.goo.gl/r5pFyiZN5zi4g7Q1A" target="_blank" rel="noopener" className="nav-icon-btn" title="Cómo llegar">

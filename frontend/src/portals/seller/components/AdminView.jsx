@@ -85,7 +85,7 @@ export default function AdminView({ orders, currency, onStatusChange }) {
   const tdStyle = { padding: '13px 14px', borderBottom: '1px solid var(--border)', fontSize: '13.5px', verticalAlign: 'middle' };
 
   return (
-    <div style={{ maxWidth: '1200px' }}>
+    <div>
 
       {/* ── KPI Cards ─────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>

@@ -29,6 +29,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/users',    require('./routes/users'));
 app.use('/api/logistics', require('./routes/logistics'));
+app.use('/api/inventory', require('./routes/inventory'));
 
 // Páginas servidas por la SPA de React/Vite en frontend/dist. Agregar aquí cada
 // *.html a medida que se vaya migrando de vanilla JS a React (ver plan de migración
@@ -39,8 +40,23 @@ const REACT_ROUTES = ['/', '/index.html', '/login', '/producto.html', '/vendedor
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendIndexPath = path.join(frontendDist, 'index.html');
 if (fs.existsSync(frontendIndexPath)) {
-  app.use(express.static(frontendDist));
-  app.get(REACT_ROUTES, (req, res) => res.sendFile(frontendIndexPath));
+  // Los assets de Vite llevan hash en el nombre (immutables): se pueden cachear
+  // para siempre. Pero el index.html NO debe cachearse, porque es el que apunta a
+  // los bundles nuevos tras cada build; si el navegador lo reusa, sigue cargando
+  // CSS/JS viejos (íconos en posición vieja, estilos desactualizados, etc.).
+  app.use(express.static(frontendDist, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (filePath.includes(`${path.sep}vite-assets${path.sep}`)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+  app.get(REACT_ROUTES, (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(frontendIndexPath);
+  });
 }
 
 // Servir el resto del sitio (portales internos) directamente desde la raíz del proyecto
@@ -79,7 +95,7 @@ app.listen(config.port, '0.0.0.0', () => {
   if (localIps.length > 0) {
     localIps.forEach(ip => {
       console.log(`   Catálogo (Red Local):  http://${ip}:${config.port}/`);
-      console.log(`   Admin (Red Local):     http://${ip}:${config.port}/admin.html`);
+      console.log(`   Admin (Red Local):     http://${ip}:${config.port}/inventario`);
     });
   } else {
     console.log(`   Inventario (Local):   http://localhost:${config.port}/inventario`);

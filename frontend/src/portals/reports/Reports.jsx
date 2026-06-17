@@ -178,7 +178,7 @@ export default function Reports({ user, signOutPortal }) {
 
   return (
     <PortalLayout title="Reportes" icon="📊" user={user} signOutPortal={signOutPortal} currentPortal="reportes">
-      <div className="portal-theme" style={{ maxWidth: '1200px' }}>
+      <div className="portal-theme">
 
         {/* KPI Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '24px' }}>

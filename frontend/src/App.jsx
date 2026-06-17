@@ -3,8 +3,7 @@ import { CartProvider } from './context/CartContext';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import LoginPage from './pages/LoginPage';
-import CartDrawer from './components/CartDrawer';
-import CheckoutModal from './components/CheckoutModal';
+import CartGate from './components/CartGate';
 import Toast from './components/Toast';
 import PortalAuthGate from './portals/layout/PortalAuthGate';
 import SalesPortal from './portals/seller/SalesPortal';
@@ -71,8 +70,7 @@ export default function App() {
             }
           />
         </Routes>
-        <CartDrawer />
-        <CheckoutModal />
+        <CartGate />
         <Toast />
       </BrowserRouter>
     </CartProvider>

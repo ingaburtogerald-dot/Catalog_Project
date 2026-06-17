@@ -87,14 +87,172 @@
   --modal-border: rgba(0, 0, 0, 0.12);
 }
 
+/* Controles nativos (icono del date picker, popups, spinners, scrollbars) acordes
+   al tema. Sin esto, el botón de calendario casi no se ve en modo oscuro. */
+.portal-theme { color-scheme: dark; }
+.portal-theme[data-theme="light"] { color-scheme: light; }
+.portal-theme input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.85; }
+
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Outfit', system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* Layout */
-.admin-wrap { max-width: 95%; margin: 0 auto; padding: 32px 24px; }
+/* ── Dashboard Shell: Sidebar + Columna principal ──────────────────────────── */
+.portal-shell { display: flex; align-items: stretch; min-height: 100vh; }
+
+/* A. Sidebar (menú lateral fijo) */
+.portal-sidebar {
+  width: 258px; flex-shrink: 0;
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column;
+  background: rgba(8, 15, 28, 0.55);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  z-index: 90;
+}
+.portal-theme[data-theme="light"] .portal-sidebar { background: rgba(255, 255, 255, 0.72); }
+
+.portal-sidebar-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px; border-bottom: 1px solid var(--border);
+}
+.portal-sidebar-logo {
+  width: 42px; height: 42px; border-radius: 12px; object-fit: cover;
+  border: 1.5px solid var(--accent); flex-shrink: 0;
+}
+.portal-sidebar-brand { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.portal-sidebar-brand strong { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--heading-color); }
+.portal-sidebar-brand span { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+.portal-sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; flex: 1; overflow-y: auto; }
+.portal-sidebar-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--muted); padding: 4px 12px 8px;
+}
+.portal-sidebar-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: 11px;
+  font-size: 14px; font-weight: 600; color: var(--text-soft); text-decoration: none;
+  transition: all 0.18s ease;
+}
+.portal-sidebar-link i { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
+.portal-sidebar-link:hover { background: var(--btn-ghost-bg); color: var(--text); }
+.portal-sidebar-link.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.20), rgba(14, 165, 233, 0.05));
+  color: var(--accent-soft); font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.portal-sidebar-foot {
+  display: flex; align-items: center; gap: 10px;
+  margin: 12px; padding: 11px 14px; border-radius: 11px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-soft); text-decoration: none;
+  border: 1px solid var(--border); transition: all 0.18s ease;
+}
+.portal-sidebar-foot:hover { color: var(--accent); border-color: var(--border-highlight); background: var(--btn-ghost-bg); }
+
+.portal-sidebar-overlay { display: none; }
+
+/* B. Columna principal */
+.portal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* Top header: franja delgada de altura fija, sin padding vertical.
+   IMPORTANTE: se prefija con .portal-theme para ganarle en especificidad a la
+   regla legacy `header:not(.header-compacto)` de assets/css/style.css (importada
+   globalmente en main.jsx), que de lo contrario convierte este <header> en un
+   grid de 3 columnas con min-height:280px (íconos al centro + barra gigante). */
+.portal-theme .portal-topbar {
+  position: sticky; top: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: 100%; box-sizing: border-box;
+  height: 60px; min-height: 60px; padding: 0 24px; /* anula min-height:280px legacy */
+  background: rgba(5, 11, 20, 0.72);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.portal-theme[data-theme="light"] .portal-topbar { background: rgba(255, 255, 255, 0.78); }
+
+/* Bloque izquierdo: solo el título. flex:1 lo hace crecer y empuja el bloque
+   derecho hasta el borde, redundante con space-between + margin-left:auto. */
+.portal-topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+.portal-topbar-title {
+  font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: var(--heading-color);
+  display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;
+}
+
+/* Bloque derecho: empujado agresivamente a la esquina derecha con margin-left:auto. */
+.portal-topbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: auto; }
+
+/* Avatar + menú desplegable */
+.portal-avatar-menu { position: relative; }
+.portal-avatar-btn {
+  padding: 0; border-radius: 50%; cursor: pointer; line-height: 0;
+  background: transparent; border: 2px solid var(--border-strong);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.portal-avatar-btn:hover { border-color: var(--accent); }
+.portal-avatar-btn.open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.portal-avatar-btn img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: block; }
+
+.portal-avatar-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0; min-width: 230px;
+  background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: 14px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4); padding: 8px; z-index: 200;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  animation: fadeIn 0.15s ease forwards;
+}
+.portal-avatar-head {
+  display: flex; align-items: center; gap: 11px;
+  padding: 8px 10px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.portal-avatar-head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent); flex-shrink: 0; }
+.portal-avatar-head-info { display: flex; flex-direction: column; min-width: 0; }
+.portal-avatar-head-info strong { font-size: 14px; color: var(--heading-color); font-weight: 700; }
+.portal-avatar-head-info span { font-size: 12px; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.portal-avatar-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box;
+  padding: 10px 12px; border: none; background: transparent; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; font-family: inherit; color: var(--text);
+  cursor: pointer; text-align: left; transition: background 0.15s ease, color 0.15s ease;
+}
+.portal-avatar-item i { width: 16px; text-align: center; font-size: 14px; color: var(--text-soft); }
+.portal-avatar-item:hover { background: var(--btn-ghost-hover); }
+.portal-avatar-item.danger { color: var(--danger); }
+.portal-avatar-item.danger i { color: var(--danger); }
+.portal-avatar-item.danger:hover { background: rgba(239, 68, 68, 0.1); }
+.portal-avatar-divider { height: 1px; background: var(--border); margin: 6px 4px; }
+
+.portal-topbar-burger { display: none; }
+
+/* Responsive: sidebar colapsable con hamburguesa */
+@media (max-width: 980px) {
+  .portal-sidebar {
+    position: fixed; left: 0; top: 0;
+    transform: translateX(-100%); transition: transform 0.25s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  }
+  .portal-sidebar.open { transform: translateX(0); }
+  .portal-sidebar-overlay {
+    display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 89;
+  }
+  .portal-sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+  .portal-topbar-burger {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 17px; padding: 8px 11px; border-radius: 10px;
+    background: var(--btn-ghost-bg); border: 1px solid var(--btn-ghost-border); color: var(--text); cursor: pointer;
+  }
+}
+@media (max-width: 720px) {
+  .portal-theme .portal-topbar { padding: 0 14px; gap: 10px; }
+  .portal-topbar-title { font-size: 17px; }
+}
+
+/* Layout del contenido — full width, sin centrar, el contenido arranca arriba */
+.admin-wrap { width: 100%; margin: 0; padding: 16px 24px 48px; box-sizing: border-box; }
 .admin-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .admin-head h1 { font-size: 24px; font-weight: 800; color: var(--heading-color); display: flex; align-items: center; gap: 12px; }
 .admin-head h2 { font-size: 20px; font-weight: 700; color: var(--heading-color); }

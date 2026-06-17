@@ -166,7 +166,7 @@ function AdminLogisticsView({ packages, currency, onAdvance, onCreate }) {
   const tdStyle = { padding: '13px 14px', borderBottom: '1px solid var(--border)', fontSize: '13.5px', verticalAlign: 'middle' };
 
   return (
-    <div style={{ maxWidth: '1200px' }}>
+    <div>
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '24px' }}>
         {[
@@ -277,7 +277,7 @@ function CustomerLogisticsView({ packages }) {
   }
 
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div>
       <p style={{ color: 'var(--text-soft)', marginBottom: '20px', fontSize: '14px' }}>
         Tienes <strong style={{ color: 'var(--text)' }}>{packages.length} {packages.length === 1 ? 'paquete' : 'paquetes'}</strong> registrados.
       </p>

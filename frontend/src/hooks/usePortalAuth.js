@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFirebaseAuth, onAuthStateChanged, signOut } from '../lib/firebaseClient';
 
 // A qué portal redirigir según el rol resuelto, cuando el rol actual no tiene
-// acceso a la página donde está parado. Debe mantenerse en sync con la lista
-// PORTALS de assets/js/auth-global.js mientras conviven ambas arquitecturas.
+// acceso a la página donde está parado. Mantener en sync con PORTALS de
+// components/GlobalNav.jsx.
 const PORTAL_BY_ROLE = {
   admin: '/inventario',
   global_admin: '/inventario',
@@ -30,10 +30,9 @@ function redirectToLogin() {
 }
 
 // Hook de auth compartido para portales internos en React.
-// Reemplaza el boilerplate de Firebase+redirects duplicado en cada *.js legacy.
-// IMPORTANTE: escribe las MISMAS claves de localStorage que ya leen
-// frontend/src/hooks/useUserRoles.js y assets/js/auth-global.js — no inventar
-// un esquema nuevo, porque el catálogo y los portales legacy dependen de esto.
+// IMPORTANTE: escribe las MISMAS claves de localStorage (gyro_*) que lee
+// frontend/src/hooks/useUserRoles.js, del que depende el sidebar de la tienda
+// para mostrar los accesos de staff. No inventar un esquema nuevo.
 export function usePortalAuth(allowedRoles) {
   const [status, setStatus] = useState('loading'); // loading | authenticated | redirecting
   const [user, setUser] = useState(null);

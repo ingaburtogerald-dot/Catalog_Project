@@ -52,18 +52,19 @@ module.exports = {
     percent: Number(process.env.VOLUME_PERCENT) || 10,
   },
 
-  // Categorías del catálogo (con su ícono para la UI)
+  // Categorías del catálogo (con su ícono para la UI). Fuente única, expuesta vía
+  // GET /api/config y usada por el catálogo, los formularios y el ingreso a bodega.
   categories: [
-    { id: 'in-ear',       name: 'In-Ear',           icon: '🎧' },
-    { id: 'computadoras', name: 'Accesorios PC',    icon: '🖱️' },
-    { id: 'diadema',      name: 'Diadema',          icon: '🎚️' },
-    { id: 'audio',        name: 'Accesorios Audio', icon: '🔊' },
-    { id: 'bluetooth',    name: 'Bluetooth',        icon: '📶' },
+    { id: 'audifonos-kz',  name: 'Audífonos KZ in-ear',          icon: '🎧' },
+    { id: 'adaptador-bt',  name: 'Adaptador Bluetooth in-ear',   icon: '📶' },
+    { id: 'accesorios-kz', name: 'Accesorios para audífonos KZ', icon: '🎚️' },
+    { id: 'accesorios-pc', name: 'Accesorios para computadora',  icon: '🖱️' },
   ],
 
   collections: {
     products: 'products', orders: 'orders', purchases: 'purchases', users: 'users', usersDeleted: 'users_deleted',
-    logisticsShipments: 'logistics_shipments', appConfig: 'app_config', catalog: 'catalog'
+    logisticsShipments: 'logistics_shipments', appConfig: 'app_config', catalog: 'catalog',
+    inventoryItems: 'inventory_items'
   },
 
   // Carpeta dentro de Firebase Storage donde se guardan las fotos del portal Gyro Logistics

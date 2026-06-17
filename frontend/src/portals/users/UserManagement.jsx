@@ -243,7 +243,7 @@ export default function UserManagement({ user: adminUser, signOutPortal }) {
     >
       <div className={`toast ${toastShow ? 'show' : ''}`}>{toastMsg}</div>
 
-      <div className="portal-theme" style={{ maxWidth: '1200px' }}>
+      <div className="portal-theme">
         {/* Role stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>

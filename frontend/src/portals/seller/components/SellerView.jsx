@@ -108,7 +108,7 @@ export default function SellerView({ user, products, orders, currency, reloadOrd
   const tdStyle = { padding: '12px 14px', borderBottom: '1px solid var(--border)', fontSize: '13.5px', verticalAlign: 'middle' };
 
   return (
-    <div style={{ maxWidth: '1100px' }}>
+    <div>
 
       {/* ── Encabezado ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
