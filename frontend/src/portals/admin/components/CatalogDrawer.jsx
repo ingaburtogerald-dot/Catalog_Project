@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProducts, fetchConfig } from '../../../lib/api';
-import { getFirebaseAuth, onAuthStateChanged } from '../../../lib/firebaseClient';
+import { getFirebaseAuth, onAuthStateChanged } from '../../../auth/services/firebaseAuth';
 
 export default function CatalogDrawer({ isOpen, onClose, onSaved, editProductId = null, prefillData = null }) {
   const [categories, setCategories] = useState([]);

@@ -1,5 +1,5 @@
 import { useUserRoles } from '../hooks/useUserRoles';
-import { getFirebaseAuth, signOut } from '../lib/firebaseClient';
+import { getFirebaseAuth, signOut } from '../auth/services/firebaseAuth';
 import GlobalNav from './GlobalNav';
 
 function clearGyroSession() {

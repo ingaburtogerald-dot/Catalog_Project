@@ -10,7 +10,7 @@ import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 import { useUserRoles } from '../hooks/useUserRoles';
 import { fetchConfig, reorderProducts } from '../lib/api';
-import { getFirebaseAuth } from '../lib/firebaseClient';
+import { getFirebaseAuth } from '../auth/services/firebaseAuth';
 import CatalogDrawer from '../portals/admin/components/CatalogDrawer';
 
 export default function Home() {

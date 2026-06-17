@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import PortalLayout from '../layout/PortalLayout';
 import { authedFetch } from '../lib/portalApi';
@@ -91,8 +92,70 @@ function EmptyState({ icon, text }) {
   );
 }
 
+// ─── Menú ⋯ con portal — evita ser recortado por overflow:auto de la tabla ───
+function RowMenu({ item, onEdit }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos]   = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+
+  function handleOpen(e) {
+    e.stopPropagation();
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 4, left: r.right - 140 });
+    setOpen(v => !v);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    // Bubble phase (no capture). El stopPropagation del div del portal evita que
+    // clics DENTRO del menú lleguen aquí. Solo clics FUERA cierran el menú.
+    // setTimeout(0) descarta el mismo clic que abrió el menú.
+    const t = setTimeout(() => document.addEventListener('click', close), 0);
+    return () => { clearTimeout(t); document.removeEventListener('click', close); };
+  }, [open]);
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        title="Más opciones"
+        style={{ padding: '5px 8px', borderRadius: '7px', cursor: 'pointer', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-soft)', fontSize: '14px', lineHeight: 1 }}
+      >
+        <i className="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      {open && createPortal(
+        <div
+          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', boxShadow: '0 6px 20px rgba(0,0,0,0.3)', minWidth: '140px', overflow: 'hidden' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { onEdit(item); setOpen(false); }}
+            style={{ width: '100%', padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '9px', fontWeight: 600 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,131,255,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <i className="fa-solid fa-pen" style={{ color: 'var(--accent)', fontSize: '12px', width: '14px' }}></i>
+            Editar
+          </button>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
+// ─── Formatea un string 'YYYY-MM' como 'Abril de 2026' ───────────────────────
+const monthLabel = (ym) => {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  const name = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('es', { month: 'long', year: 'numeric' });
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 // ═══ PESTAÑA 1: Registro de compras en China ═════════════════════════════════
-function ChinaTab({ items, onAdd, onReport, onEdit }) {
+function ChinaTab({ items, isFiltered, onAdd, onReport, onEdit }) {
   const EMPTY = { purchaseDate: '', lote: '', code: '', name: '', qty: '', costUnit: '', taxUnit: '' };
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -101,38 +164,10 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
   const valid = filled(form.purchaseDate) && filled(form.lote) && filled(form.code) && filled(form.name)
     && Number(form.qty) > 0 && filled(form.costUnit) && filled(form.taxUnit);
 
-  // Filtro por rango de fecha de compra ('YYYY-MM-DD' permite comparar como string).
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
-  const filtered = useMemo(() => items.filter(it => {
-    const d = it.purchaseDate || '';
-    if (desde && (!d || d < desde)) return false;
-    if (hasta && (!d || d > hasta)) return false;
-    return true;
-  }), [items, desde, hasta]);
-
-  // Desglose por lote (sobre el set filtrado): costo de cada LT.
-  const byLote = useMemo(() => {
-    const m = {};
-    filtered.forEach(it => {
-      const key = it.lote || '—';
-      const q = Number(it.qty) || 0;
-      if (!m[key]) m[key] = { lote: key, qty: 0, cost: 0, tax: 0 };
-      m[key].qty += q;
-      m[key].cost += (Number(it.costUnit) || 0) * q;
-      m[key].tax += (Number(it.taxUnit) || 0) * q;
-    });
-    return Object.values(m).sort((a, b) => String(a.lote).localeCompare(String(b.lote), undefined, { numeric: true }));
-  }, [filtered]);
-
-  // Totales y conteos del set filtrado.
-  const totalQty = filtered.reduce((s, it) => s + (Number(it.qty) || 0), 0);
-  const totalCost = filtered.reduce((s, it) => s + (Number(it.costUnit) || 0) * (Number(it.qty) || 0), 0);
-  const totalTax = filtered.reduce((s, it) => s + (Number(it.taxUnit) || 0) * (Number(it.qty) || 0), 0);
+  // Totales financieros del set ya filtrado globalmente por el padre
+  const totalCost = items.reduce((s, it) => s + (Number(it.costUnit) || 0) * (Number(it.qty) || 0), 0);
+  const totalTax  = items.reduce((s, it) => s + (Number(it.taxUnit)  || 0) * (Number(it.qty) || 0), 0);
   const totalPaid = totalCost + totalTax;
-  const countChina = filtered.filter(i => i.status === 'china').length;
-  const countPending = filtered.filter(i => i.status === 'pending').length;
-  const countReceived = filtered.filter(i => i.status === 'received').length;
 
   async function submit(e) {
     e.preventDefault();
@@ -150,7 +185,7 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
 
   return (
     <>
-      {/* Formulario de ingreso */}
+      {/* ── Formulario de ingreso ── */}
       <form onSubmit={submit} style={{ ...panelStyle, padding: '18px 20px', marginBottom: '18px' }}>
         <h3 style={{ margin: '0 0 14px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--heading-color)' }}>
           <i className="fa-solid fa-cart-plus" style={{ color: 'var(--accent)' }}></i> Registrar compra en China
@@ -190,12 +225,13 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
         </div>
       </form>
 
-      {/* Tabla de compras en China (registro maestro: muestra TODOS los ítems) */}
+      {/* ── Tabla de compras ── */}
       <div style={panelStyle}>
         {items.length === 0 ? (
-          <EmptyState icon="fa-plane-departure" text="No hay compras registradas. Agregá la primera con el formulario de arriba." />
+          isFiltered
+            ? <EmptyState icon="fa-filter" text="Ningún registro coincide con los filtros seleccionados." />
+            : <EmptyState icon="fa-plane-departure" text="No hay compras registradas. Agregá la primera con el formulario de arriba." />
         ) : (
-          <>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -208,7 +244,8 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
                   <th style={{ ...thStyle, textAlign: 'right' }}>Costo Unit.</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Impuesto Unit.</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Precio Unit. Real</th>
-                  <th style={{ ...thStyle, textAlign: 'center' }}>Acción / Estado</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Estado</th>
+                  <th style={{ ...thStyle, width: '40px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -225,24 +262,20 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{usd4(it.taxUnit)}</td>
                       <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: 'var(--accent)' }}>{usd(total)}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                        {it.status === 'china' ? (
                           <button
-                            title="Editar compra" onClick={() => onEdit(it)}
-                            style={{ padding: '6px 9px', borderRadius: '7px', cursor: 'pointer', background: 'var(--btn-ghost-bg)', border: '1px solid var(--btn-ghost-border)', color: 'var(--text-soft)', fontSize: '12.5px' }}
+                            onClick={() => onReport(it.id)}
+                            style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(14,165,233,0.15)', color: '#0ea5e9', fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' }}
                           >
-                            <i className="fa-solid fa-pen"></i>
+                            <i className="fa-solid fa-flag-checkered"></i> Reportar recibido
                           </button>
-                          {it.status === 'china' ? (
-                            <button
-                              onClick={() => onReport(it.id)}
-                              style={{ padding: '7px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(14,165,233,0.15)', color: '#0ea5e9', fontSize: '12.5px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' }}
-                            >
-                              <i className="fa-solid fa-flag-checkered"></i> Reportar como recibido en Nicaragua
-                            </button>
-                          ) : (
-                            <StatusBadge status={it.status} />
-                          )}
-                        </div>
+                        ) : (
+                          <StatusBadge status={it.status} />
+                        )}
+                      </td>
+                      {/* ── Menú ⋯ (portal, sin clip por overflow) ── */}
+                      <td style={{ ...tdStyle, textAlign: 'center', padding: '12px 10px' }}>
+                        <RowMenu item={it} onEdit={onEdit} />
                       </td>
                     </tr>
                   );
@@ -250,27 +283,31 @@ function ChinaTab({ items, onAdd, onReport, onEdit }) {
               </tbody>
             </table>
           </div>
-
-          {/* Pie de totales agregados */}
-          <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: '18px 30px', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            {[
-              { label: 'Unidades compradas', value: totalQty, color: 'var(--text)', big: false },
-              { label: 'Subtotal (sin imp.)', value: usd(totalCost), color: 'var(--text)', big: false },
-              { label: 'Impuestos pagados', value: usd(totalTax), color: '#f59e0b', big: false },
-              { label: 'Total (con imp.)', value: usd(totalPaid), color: 'var(--accent)', big: true },
-              { label: 'Ítems en tránsito', value: countChina, color: '#7c83ff', big: false },
-              { label: 'Ítems pendientes', value: countPending, color: '#f59e0b', big: false },
-              { label: 'Ítems recibidos', value: countReceived, color: '#10b981', big: false },
-            ].map(s => (
-              <div key={s.label} style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--muted)', marginBottom: '3px' }}>{s.label}</div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: s.color }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-          </>
         )}
       </div>
+
+      {/* ── Cuadro de Resumen Financiero (abajo de la tabla) ── */}
+      {items.length > 0 && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px 24px', marginTop: '16px' }}>
+          <p style={{ margin: '0 0 14px', fontSize: '11px', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            Resumen financiero
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            <div style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Subtotal (sin imp.)</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{usd(totalCost)}</div>
+            </div>
+            <div style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: '10px', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Impuestos pagados</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#f59e0b' }}>{usd(totalTax)}</div>
+            </div>
+            <div style={{ padding: '14px 16px', background: 'rgba(124,131,255,0.08)', borderRadius: '10px', textAlign: 'center', border: '1px solid rgba(124,131,255,0.2)' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Total (con imp.)</div>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent)' }}>{usd(totalPaid)}</div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -545,6 +582,28 @@ export default function InventoryManagement({ user, signOutPortal }) {
   const [editWarehouseTarget, setEditWarehouseTarget] = useState(null);
   const [toast, setToast] = useState('');
 
+  // ── Filtros globales — afectan KPIs + todas las pestañas ─────────────────
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterLote, setFilterLote]   = useState('');
+
+  const availableMonths = useMemo(() => {
+    const s = new Set(items.map(it => String(it.purchaseDate || '').substring(0, 7)).filter(Boolean));
+    return [...s].sort().reverse();
+  }, [items]);
+
+  const availableLotes = useMemo(() => {
+    const s = new Set(items.map(it => it.lote).filter(Boolean));
+    return [...s].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+  }, [items]);
+
+  const filteredItems = useMemo(() => items.filter(it => {
+    if (filterMonth && String(it.purchaseDate || '').substring(0, 7) !== filterMonth) return false;
+    if (filterLote  && it.lote !== filterLote) return false;
+    return true;
+  }), [items, filterMonth, filterLote]);
+
+  const isFiltered = Boolean(filterMonth || filterLote);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const loadItems = useCallback(async () => {
@@ -572,8 +631,8 @@ export default function InventoryManagement({ user, signOutPortal }) {
     if (searchParams.get('view') === 'pending') { setMainTab('inventory'); setSubTab('pending'); }
   }, [searchParams]);
 
-  const pendingItems = items.filter(i => i.status === 'pending');
-  const receivedItems = items.filter(i => i.status === 'received');
+  const pendingItems = filteredItems.filter(i => i.status === 'pending');
+  const receivedItems = filteredItems.filter(i => i.status === 'received');
 
   async function handleAdd(data) {
     try {
@@ -639,13 +698,11 @@ export default function InventoryManagement({ user, signOutPortal }) {
     }
   }
 
-  const unitsInWarehouse = receivedItems.reduce((s, i) => s + (computeWarehouse(i).stock || 0), 0);
-
   const kpis = [
-    { label: 'Compras registradas', value: items.length, icon: 'fa-plane-departure', color: '#7c83ff' },
-    { label: 'Pendiente de aprobar', value: pendingItems.length, icon: 'fa-clock', color: '#f59e0b' },
-    { label: 'Recibidos en Bodega', value: receivedItems.length, icon: 'fa-warehouse', color: '#10b981' },
-    { label: 'Unidades en Stock', value: unitsInWarehouse, icon: 'fa-layer-group', color: '#22c55e' },
+    { label: 'Compras registradas',  value: filteredItems.length,                                  icon: 'fa-ship',            color: '#7c83ff' },
+    { label: 'Pendiente de aprobar', value: pendingItems.length,                                   icon: 'fa-clipboard-check', color: '#f59e0b' },
+    { label: 'Recibidos en Bodega',  value: receivedItems.length,                                  icon: 'fa-warehouse',       color: '#10b981' },
+    { label: 'En tránsito',          value: filteredItems.filter(i => i.status === 'china').length, icon: 'fa-truck-fast',      color: '#22c55e' },
   ];
 
   return (
@@ -658,6 +715,40 @@ export default function InventoryManagement({ user, signOutPortal }) {
           </div>
         ) : (
           <>
+            {/* Filtros globales */}
+            {items.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '20px', padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                <div style={{ minWidth: '170px' }}>
+                  <label style={labelStyle}>Filtrar por mes</label>
+                  <select style={inputStyle} value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+                    <option value="">Todos los meses</option>
+                    {availableMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+                  </select>
+                </div>
+                <div style={{ minWidth: '140px' }}>
+                  <label style={labelStyle}>Filtrar por lote</label>
+                  <select style={inputStyle} value={filterLote} onChange={e => setFilterLote(e.target.value)}>
+                    <option value="">Todos los lotes</option>
+                    {availableLotes.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                {isFiltered && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setFilterMonth(''); setFilterLote(''); }}
+                      style={{ padding: '9px 13px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-soft)', cursor: 'pointer', fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-end' }}
+                    >
+                      <i className="fa-solid fa-xmark"></i> Limpiar filtros
+                    </button>
+                    <span style={{ alignSelf: 'flex-end', fontSize: '12px', color: 'var(--text-soft)', paddingBottom: '10px', fontWeight: 600 }}>
+                      {filteredItems.length} de {items.length} registros
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* KPIs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '22px' }}>
               {kpis.map(k => (
@@ -688,7 +779,7 @@ export default function InventoryManagement({ user, signOutPortal }) {
             </div>
 
             {mainTab === 'china' && (
-              <ChinaTab items={items} onAdd={handleAdd} onReport={handleReport} onEdit={setEditChinaTarget} />
+              <ChinaTab items={filteredItems} isFiltered={isFiltered} onAdd={handleAdd} onReport={handleReport} onEdit={setEditChinaTarget} />
             )}
 
             {mainTab === 'inventory' && (
