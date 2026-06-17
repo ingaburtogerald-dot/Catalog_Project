@@ -9,7 +9,8 @@ async function fetchJSON(path, options) {
 
 export const fetchConfig = () => fetchJSON('/config');
 export const fetchProducts = () => fetchJSON('/products');
-export const fetchProduct = (id) => fetchJSON(`/products/${encodeURIComponent(id)}`);
+export const fetchProduct = (id) => fetchJSON(`/catalog/${encodeURIComponent(id)}`);
+export const fetchCatalog = (all = false) => fetchJSON(`/catalog${all ? '?all=true' : ''}`);
 
 export const createOrder = (payload) => fetchJSON('/orders', {
   method: 'POST',

@@ -537,8 +537,8 @@ function applyStockFilters() {
     return `<tr class="clickable-row" data-purchase='${esc(JSON.stringify(p))}'>
       <td class="col-select"><input type="checkbox" class="stock-select" data-id="${p.id}" /></td>
       <td><strong>${esc(p.code || '—')}</strong></td>
-      <td><span class="badge" style="background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); font-size: 11px;">${esc(p.category || 'Sin Cat')}</span></td>
       <td>${esc(p.product)}</td>
+      <td><span class="badge" style="background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); font-size: 11px;">${esc(p.category || 'Sin Cat')}</span></td>
       <td class="text-right">${dateStr}</td>
       <td class="text-right">${daysText}</td>
       <td class="text-right">${p.qty}</td>

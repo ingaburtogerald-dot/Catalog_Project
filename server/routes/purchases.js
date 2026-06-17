@@ -4,6 +4,7 @@ const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../utils');
+const catalogRouter = require('./catalog');
 
 const COL = config.collections.purchases;
 
@@ -118,6 +119,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   });
 
   const created = await Promise.all(promises);
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.status(201).json(created);
 }));
 
@@ -132,8 +134,8 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
 
   const { lote, code, date, receiveDate, product, qty, cost, tax, shipping, exchangeRate, status, notes, approved, category } = req.body;
 
-  const cleanCode = String(code || '').trim();
-  if (cleanCode) {
+  const cleanCode = code !== undefined ? String(code || '').trim() : existingData.code;
+  if (cleanCode && code !== undefined) {
     const snap = await db.collection(COL).get();
     const anotherWithSameCode = snap.docs.some(d => d.id !== req.params.id && String(d.data().code || '').trim().toLowerCase() === cleanCode.toLowerCase());
     if (anotherWithSameCode) {
@@ -141,17 +143,17 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
     }
   }
 
-  const rate = Number(exchangeRate) || 37.00;
-  const targetQty = Math.max(1, parseInt(qty) || 1);
-  const targetCost = Math.max(0, parseFloat(cost) || 0);
-  const targetTax = Math.max(0, parseFloat(tax) || 0);
-  const targetShipping = Math.max(0, parseFloat(shipping) || 0);
+  const rate = exchangeRate !== undefined ? (Number(exchangeRate) || 37.00) : (existingData.exchangeRate || 37.00);
+  const targetQty = qty !== undefined ? Math.max(1, parseInt(qty) || 1) : (existingData.qty || 1);
+  const targetCost = cost !== undefined ? Math.max(0, parseFloat(cost) || 0) : (existingData.cost || 0);
+  const targetTax = tax !== undefined ? Math.max(0, parseFloat(tax) || 0) : (existingData.tax || 0);
+  const targetShipping = shipping !== undefined ? Math.max(0, parseFloat(shipping) || 0) : (existingData.shipping || 0);
   
   const unitCost = targetCost + targetTax + targetShipping;
   const totalUsd = targetQty * unitCost;
   const totalNio = totalUsd * rate;
 
-  const targetStatus = String(status || 'Pedido').trim();
+  const targetStatus = status !== undefined ? String(status || 'Pedido').trim() : (existingData.status || 'Pedido');
   let targetApproved = false;
   if (targetStatus === 'Recibido') {
     if (approved !== undefined) {
@@ -164,11 +166,11 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   }
 
   const doc = {
-    lote: String(lote || '').trim() || 'LT',
-    code: String(code || '').trim(),
-    date: String(date || '').trim() || new Date().toISOString().split('T')[0],
+    lote: lote !== undefined ? (String(lote || '').trim() || 'LT') : (existingData.lote || 'LT'),
+    code: cleanCode,
+    date: date !== undefined ? (String(date || '').trim() || new Date().toISOString().split('T')[0]) : (existingData.date || new Date().toISOString().split('T')[0]),
     receiveDate: receiveDate !== undefined ? String(receiveDate || '').trim() : existingData.receiveDate || null,
-    product: String(product || '').trim() || 'Artículo sin nombre',
+    product: product !== undefined ? (String(product || '').trim() || 'Artículo sin nombre') : (existingData.product || 'Artículo sin nombre'),
     qty: targetQty,
     cost: targetCost,
     tax: targetTax,
@@ -187,6 +189,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   Object.keys(doc).forEach(k => doc[k] === undefined && delete doc[k]);
 
   await ref.update(doc);
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ id: req.params.id, ...doc });
 }));
 
@@ -206,6 +209,7 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   }
 
   await ref.delete();
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ ok: true, id: req.params.id });
 }));
 
@@ -248,6 +252,7 @@ router.patch('/:id/discard', requireAdmin, asyncHandler(async (req, res) => {
     updatedAt: FieldValue.serverTimestamp()
   });
 
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ ok: true, id: req.params.id });
 }));
 

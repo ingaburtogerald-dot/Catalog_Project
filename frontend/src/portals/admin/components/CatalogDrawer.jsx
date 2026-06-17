@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProducts, fetchConfig } from '../../../lib/api';
-import { getFirebaseAuth } from '../../../lib/firebaseClient';
+import { getFirebaseAuth, onAuthStateChanged } from '../../../lib/firebaseClient';
 
-export default function CatalogDrawer({ isOpen, onClose, editProductId = null }) {
+export default function CatalogDrawer({ isOpen, onClose, editProductId = null, prefillData = null }) {
   const [categories, setCategories] = useState([]);
   const [inventory, setInventory] = useState([]);
   
@@ -15,12 +15,16 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
     isPromo: false
   });
   
+  const [existingImages, setExistingImages] = useState([]);
   const [files, setFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
+  const [newPreviews, setNewPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
   
   const fileInputRef = useRef(null);
+
+  // Combinación de imágenes existentes y nuevas previsualizaciones
+  const previews = [...existingImages, ...newPreviews];
 
   useEffect(() => {
     if (isOpen) {
@@ -28,50 +32,65 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
         if (cfg.categories) setCategories(cfg.categories);
       }).catch(console.error);
       
-      // Cargar solo los productos que están "En Stock" (tab de recibidas)
-      fetch('/api/products')
+      // Cargar todos los ítems de inventario (incluyendo agotados) para permitir vinculación completa
+      fetch('/api/products?all=true')
         .then(res => res.json())
         .then(res => {
-          console.log('Inventory loaded:', res.length, 'items');
           setInventory(res);
         })
         .catch(console.error);
       
-      // Reset form on open if creating new
       if (!editProductId) {
-        setFormData({ name: '', category: '', desc: '', variants: [], isPromo: false });
+        if (prefillData) {
+          setFormData({
+            name: prefillData.name || '',
+            category: prefillData.category || '',
+            desc: '',
+            variants: prefillData.variants || [],
+            isPromo: false
+          });
+        } else {
+          setFormData({ name: '', category: '', desc: '', variants: [], isPromo: false });
+        }
+        setExistingImages([]);
         setFiles([]);
-        setPreviews([]);
+        setNewPreviews([]);
         setMsg({ type: '', text: '' });
       } else {
-        // TODO: Fetch existing product details if editing
+        setLoading(true);
+        fetch(`/api/catalog/${editProductId}`)
+          .then(res => res.json())
+          .then(data => {
+            setFormData({
+              name: data.name || '',
+              category: data.category || '',
+              desc: data.desc || '',
+              variants: data.variants ? data.variants.map(v => v.id) : [],
+              isPromo: !!data.isPromo
+            });
+            setExistingImages(data.images || []);
+            setFiles([]);
+            setNewPreviews([]);
+            setMsg({ type: '', text: '' });
+          })
+          .catch(err => {
+            setMsg({ type: 'error', text: 'Error al cargar detalles: ' + err.message });
+          })
+          .finally(() => setLoading(false));
       }
     }
   }, [isOpen, editProductId]);
 
   // AUTO-MATCH LÓGICA (useMemo) - Buscador inteligente por palabras
   const suggestedVariants = useMemo(() => {
-    const nameStr = formData.name || '';
-    if (nameStr.trim().length > 2) {
-      const queryTerms = nameStr.toLowerCase().split(/\s+/).filter(Boolean);
-      
-      const scored = inventory.map(p => {
-        const itemName = (p.name || '').toLowerCase();
-        let score = 0;
-        queryTerms.forEach(term => {
-          if (itemName.includes(term)) score++;
-        });
-        // Si hay un match exacto de la frase completa, darle un bono masivo
-        if (itemName.includes(nameStr.toLowerCase())) score += 10;
-        
-        return { item: p, score };
-      });
-
-      return scored
-        .filter(s => s.score > 0 && !formData.variants.includes(s.item.id))
-        .sort((a, b) => b.score - a.score)
-        .map(s => s.item)
-        .slice(0, 12); // Mostrar hasta 12 mejores coincidencias
+    const nameStr = (formData.name || '').trim().toLowerCase();
+    if (nameStr.length > 2) {
+      return inventory
+        .filter(p => {
+          const itemName = (p.name || '').toLowerCase();
+          return itemName.includes(nameStr) && !formData.variants.includes(p.id);
+        })
+        .slice(0, 12);
     }
     return [];
   }, [formData.name, inventory, formData.variants]);
@@ -83,15 +102,20 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
     selectedFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => {
-        setPreviews(prev => [...prev, reader.result]);
+        setNewPreviews(prev => [...prev, reader.result]);
       };
       reader.readAsDataURL(file);
     });
   };
   
   const removeFile = (index) => {
-    setFiles(files.filter((_, i) => i !== index));
-    setPreviews(previews.filter((_, i) => i !== index));
+    if (index < existingImages.length) {
+      setExistingImages(prev => prev.filter((_, i) => i !== index));
+    } else {
+      const fileIndex = index - existingImages.length;
+      setFiles(prev => prev.filter((_, i) => i !== fileIndex));
+      setNewPreviews(prev => prev.filter((_, i) => i !== fileIndex));
+    }
   };
 
   const toggleVariantLink = (item) => {
@@ -121,16 +145,35 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
     }
     
     setLoading(true);
-    setMsg({ type: 'info', text: 'Subiendo imágenes...' });
+    setMsg({ type: 'info', text: 'Guardando datos...' });
 
     try {
       const auth = await getFirebaseAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error('No estás autenticado.');
+      let user = auth.currentUser;
+      
+      if (!user) {
+        // Esperar a que Firebase inicialice el estado de autenticación (IndexedDB)
+        await new Promise((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (u) => {
+            user = u;
+            unsubscribe();
+            resolve();
+          });
+          setTimeout(() => {
+            unsubscribe();
+            resolve();
+          }, 1500); // Timeout de 1.5s
+        });
+      }
+
+      if (!user) {
+        throw new Error('No estás autenticado. Por favor, inicia sesión en el Portal de Administración primero.');
+      }
       const token = await user.getIdToken();
       let uploadedUrls = [];
       
       if (files.length > 0) {
+        setMsg({ type: 'info', text: 'Subiendo imágenes...' });
         const fd = new FormData();
         files.forEach(f => fd.append('images', f));
         
@@ -148,7 +191,7 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
       
       const payload = {
         ...formData,
-        images: uploadedUrls
+        images: [...existingImages, ...uploadedUrls]
       };
 
       const endpoint = editProductId ? `/api/catalog/${editProductId}` : '/api/catalog';
@@ -168,7 +211,8 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
       setMsg({ type: 'success', text: `¡Producto ${editProductId ? 'actualizado' : 'publicado'} con éxito!` });
       setTimeout(() => {
         onClose();
-        // Option to trigger a refresh of the parent component's catalog here
+        // Recargar página para refrescar datos
+        window.location.reload();
       }, 1500);
 
     } catch (err) {
@@ -277,7 +321,7 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
                         {suggestedVariants.map(p => (
                           <button type="button" key={p.id} onClick={() => toggleVariantLink(p)} style={{ background: 'var(--bg-color)', border: '1px solid var(--border-highlight)', color: 'var(--text)', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', textAlign: 'left' }}>
                             <i className="fa-solid fa-plus" style={{ color: 'var(--accent)', fontSize: '10px' }}></i>
-                            {p.name}
+                            {p.code ? `[${p.code}] ` : ''}{p.name}
                           </button>
                         ))}
                       </div>
@@ -297,7 +341,9 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null })
                           const item = inventory.find(i => i.id === id);
                           return (
                             <div key={id} style={{ background: 'var(--accent)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontWeight: 600 }}>{item ? item.name : id}</span>
+                              <span style={{ fontWeight: 600 }}>
+                                {item ? `${item.code ? `[${item.code}] ` : ''}${item.name}` : id}
+                              </span>
                               <button type="button" onClick={() => toggleVariantLink({id})} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
                                 <i className="fa-solid fa-xmark"></i>
                               </button>

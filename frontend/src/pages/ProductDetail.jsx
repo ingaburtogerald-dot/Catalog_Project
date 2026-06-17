@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useCart } from '../context/CartContext';
-import { fetchConfig, fetchProduct, fetchProducts } from '../lib/api';
+import { fetchConfig, fetchProduct, fetchCatalog } from '../lib/api';
 import { resolveImageUrl } from '../lib/resolveImageUrl';
 import { productImg } from '../components/ProductCard';
 
@@ -61,7 +61,7 @@ export default function ProductDetail() {
         setQty(1);
         document.title = `${p.name} · Gyro Store`;
 
-        const all = await fetchProducts();
+        const all = await fetchCatalog();
         if (!active) return;
         setRelated(all.filter((x) => x.category === p.category && x.id !== p.id).slice(0, 4));
       } catch (err) {

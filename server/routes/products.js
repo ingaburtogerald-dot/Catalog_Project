@@ -4,6 +4,7 @@ const { db, FieldValue } = require('../firebase');
 const config = require('../config');
 const { requireAdmin } = require('../middleware/auth');
 const { asyncHandler, sanitizeProduct } = require('../utils');
+const catalogRouter = require('./catalog');
 
 const COL = config.collections.products;
 
@@ -28,25 +29,35 @@ router.get('/', asyncHandler(async (req, res) => {
     items = items.filter(p => p.deletedAt == null);
   }
 
-  // Calcular stock desde purchases con caché
+  // Calcular stock y códigos desde purchases con caché
   if (!stockCache || Date.now() - stockCacheTime > CACHE_TTL) {
-    const purSnap = await db.collection(config.collections.purchases).where('status', '==', 'Recibido').get();
+    const purSnap = await db.collection(config.collections.purchases).get();
     const stocks = {};
+    const codes = {};
     purSnap.docs.forEach(doc => {
       const p = doc.data();
-      if (p.product && p.qty) {
-        const available = Math.max(0, p.qty - (p.qtySold || 0));
-        stocks[p.product] = (stocks[p.product] || 0) + available;
+      if (p.product) {
+        const prodKey = String(p.product).trim().toLowerCase();
+        if (p.status === 'Recibido' && p.qty) {
+          const available = Math.max(0, p.qty - (p.qtySold || 0));
+          stocks[prodKey] = (stocks[prodKey] || 0) + available;
+        }
+        if (p.code) {
+          codes[prodKey] = String(p.code).trim();
+        }
       }
     });
-    stockCache = stocks;
+    stockCache = { stocks, codes };
     stockCacheTime = Date.now();
   }
 
   items.forEach(item => {
     // Las compras (purchases) guardan el nombre del producto en "p.product", no el ID.
     // Por retrocompatibilidad, verificamos tanto por item.name como por item.id.
-    item.stock = stockCache[item.name] || stockCache[item.id] || 0;
+    const keyName = String(item.name || '').trim().toLowerCase();
+    const keyId = String(item.id || '').trim().toLowerCase();
+    item.stock = stockCache.stocks[keyName] || stockCache.stocks[keyId] || 0;
+    item.code = stockCache.codes[keyName] || stockCache.codes[keyId] || '';
   });
 
   // Filtros de categoría y búsqueda
@@ -110,6 +121,7 @@ router.post('/', requireAdmin, asyncHandler(async (req, res) => {
   }
   data.createdAt = FieldValue.serverTimestamp();
   const ref = await db.collection(COL).add(data);
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.status(201).json({ id: ref.id, ...data });
 }));
 
@@ -124,6 +136,7 @@ router.put('/:id', requireAdmin, asyncHandler(async (req, res) => {
   }
   data.updatedAt = FieldValue.serverTimestamp();
   await ref.update(data);
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ id: req.params.id, ...data });
 }));
 
@@ -132,6 +145,7 @@ router.delete('/:id', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COL).doc(req.params.id);
   if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
   await ref.update({ deletedAt: FieldValue.serverTimestamp() });
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ ok: true, id: req.params.id, softDeleted: true });
 }));
 
@@ -140,6 +154,7 @@ router.post('/:id/restore', requireAdmin, asyncHandler(async (req, res) => {
   const ref = db.collection(COL).doc(req.params.id);
   if (!(await ref.get()).exists) return res.status(404).json({ error: 'Producto no encontrado.' });
   await ref.update({ deletedAt: FieldValue.delete() });
+  await catalogRouter.reconcileVariants().catch(console.error);
   res.json({ ok: true, id: req.params.id, restored: true });
 }));
 
@@ -163,6 +178,7 @@ router.delete('/:id/hard', requireAdmin, asyncHandler(async (req, res) => {
 
   batch.delete(ref);
   await batch.commit();
+  await catalogRouter.reconcileVariants().catch(console.error);
 
   res.json({ ok: true, id: productId, hardDeleted: true });
 }));
