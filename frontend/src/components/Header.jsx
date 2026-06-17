@@ -1,7 +1,10 @@
+import { useLocation } from 'react-router-dom';
 import { useUserRoles } from '../hooks/useUserRoles';
 
 export default function Header({ onOpenMenu }) {
   const { isLoggedIn } = useUserRoles();
+  const { pathname, search } = useLocation();
+  const loginHref = `/login?returnTo=${encodeURIComponent(pathname + search)}`;
 
   return (
     <header className="nav-premium">
@@ -38,7 +41,7 @@ export default function Header({ onOpenMenu }) {
         </a>
         
         {!isLoggedIn && (
-          <a href="/admin.html" className="btn btn-ghost" style={{ marginLeft: '12px', padding: '6px 16px', fontSize: '13.5px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <a href={loginHref} className="btn btn-ghost" style={{ marginLeft: '12px', padding: '6px 16px', fontSize: '13.5px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <i className="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
           </a>
         )}

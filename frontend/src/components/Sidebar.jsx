@@ -1,8 +1,25 @@
 import { useUserRoles } from '../hooks/useUserRoles';
+import { getFirebaseAuth, signOut } from '../lib/firebaseClient';
+import GlobalNav from './GlobalNav';
+
+function clearGyroSession() {
+  ['gyro_admin_logged_in', 'gyro_admin_dev_mode', 'gyro_user_name',
+   'gyro_user_photo', 'gyro_user_role', 'gyro_user_roles', 'gyro_last_activity']
+    .forEach(k => localStorage.removeItem(k));
+  sessionStorage.removeItem('gyro_welcome_shown');
+}
+
+async function handleLogout() {
+  clearGyroSession();
+  try {
+    const auth = await getFirebaseAuth();
+    await signOut(auth).catch(() => {});
+  } catch { /* noop */ }
+  window.location.href = '/';
+}
 
 export default function Sidebar({ open, onClose, categories, activeCategory, onSelectCategory }) {
-  const { isAdmin, isSeller, isLogisticsOnly } = useUserRoles();
-  const currentUrl = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+  const { isLoggedIn, roles } = useUserRoles();
 
   const allCategories = [{ id: 'all', name: 'Todo el catálogo', icon: '🛍️' }, ...categories];
 
@@ -33,38 +50,14 @@ export default function Sidebar({ open, onClose, categories, activeCategory, onS
               </li>
             ))}
 
-            {isAdmin ? (
-              <>
-                <li className="sidebar-admin-group">
-                  <span className="sidebar-section-label" style={{ paddingLeft: 0 }}>Panel de Administración</span>
-                  <ul className="sidebar-submenu" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <li><a href="/admin.html"><i className="fa-solid fa-warehouse"></i> Portal de Inventario</a></li>
-                    <li><a href="/vendedor.html"><i className="fa-solid fa-chart-line"></i> Portal de Ventas</a></li>
-                    <li><a href="/analytics.html"><i className="fa-solid fa-chart-bar"></i> Portal de Reportes</a></li>
-                    <li><a href="/usuarios.html"><i className="fa-solid fa-users"></i> Gestión de Usuarios</a></li>
-                    <li><a href="/gyrologistics.html"><i className="fa-solid fa-box"></i> Gyro Logistics</a></li>
-                  </ul>
-                </li>
-                <li><a href={`/admin.html?logout=true&from=${currentUrl}`} style={{ color: 'var(--danger, #ef4444)' }}>
-                  <i className="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </a></li>
-              </>
-            ) : isSeller ? (
-              <>
-                <li><a href="/vendedor.html"><i className="fa-solid fa-store"></i> Portal de Ventas</a></li>
-                <li><a href={`/vendedor.html?logout=true&from=${currentUrl}`} style={{ color: 'var(--danger, #ef4444)' }}>
-                  <i className="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </a></li>
-              </>
-            ) : isLogisticsOnly ? (
-              <>
-                <li><a href="/gyrologistics.html"><i className="fa-solid fa-box"></i> Gyro Logistics</a></li>
-                <li><a href={`/gyrologistics.html?logout=true&from=${currentUrl}`} style={{ color: 'var(--danger, #ef4444)' }}>
-                  <i className="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
-                </a></li>
-              </>
+            {isLoggedIn ? (
+              <GlobalNav roles={roles} mode="sidebar" onLogout={handleLogout} />
             ) : (
-              <li><a href={`/admin.html?from=${currentUrl}`}><i className="fa-solid fa-lock"></i> Iniciar Sesión</a></li>
+              <li>
+                <a href="/login">
+                  <i className="fa-solid fa-lock"></i> Iniciar Sesión
+                </a>
+              </li>
             )}
           </ul>
         </nav>

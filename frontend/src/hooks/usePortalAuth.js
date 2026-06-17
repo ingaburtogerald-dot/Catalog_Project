@@ -5,12 +5,12 @@ import { getFirebaseAuth, onAuthStateChanged, signOut } from '../lib/firebaseCli
 // acceso a la página donde está parado. Debe mantenerse en sync con la lista
 // PORTALS de assets/js/auth-global.js mientras conviven ambas arquitecturas.
 const PORTAL_BY_ROLE = {
-  admin: '/admin.html',
-  global_admin: '/admin.html',
+  admin: '/inventario',
+  global_admin: '/inventario',
   seller: '/vendedor.html',
   cashier: '/vendedor.html',
-  logistics_admin: '/gyrologistics.html',
-  logistics_customer: '/gyrologistics.html',
+  logistics_admin: '/gyrologistics',
+  logistics_customer: '/gyrologistics',
 };
 
 function clearGyroSession() {
@@ -25,8 +25,8 @@ function clearGyroSession() {
 }
 
 function redirectToLogin() {
-  const from = encodeURIComponent(window.location.pathname + window.location.search);
-  window.location.href = `/admin.html?from=${from}`;
+  const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.href = `/login?returnTo=${returnTo}`;
 }
 
 // Hook de auth compartido para portales internos en React.
@@ -91,7 +91,7 @@ export function usePortalAuth(allowedRoles) {
 
           if (!isAllowed) {
             setStatus('redirecting');
-            const dest = PORTAL_BY_ROLE[me.role] || '/admin.html';
+            const dest = PORTAL_BY_ROLE[me.role] || '/login';
             window.location.href = dest;
             return;
           }
@@ -123,7 +123,7 @@ export function usePortalAuth(allowedRoles) {
       const auth = await getFirebaseAuth();
       await signOut(auth).catch(() => {});
     } catch { /* noop */ }
-    window.location.href = '/admin.html?logout=true';
+    window.location.href = '/';
   }, []);
 
   return { status, user, signOutPortal };

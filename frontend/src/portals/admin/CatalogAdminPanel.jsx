@@ -19,12 +19,12 @@ export default function CatalogAdminPanel({ user, signOutPortal }) {
   }
 
   return (
-    <PortalLayout title="Gestión de Catálogo" icon="🏷️" user={user} signOutPortal={signOutPortal}>
+    <PortalLayout title="Gestión de Catálogo" icon="🏷️" user={user} signOutPortal={signOutPortal} currentPortal="catalogo">
       <div className="portal-theme">
         <div className="admin-head" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-soft)', fontSize: '14px', fontWeight: '600' }}>
-            <a href="/admin.html" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-              <i className="fa-solid fa-house"></i> Panel Admin
+            <a href="/inventario" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+              <i className="fa-solid fa-warehouse"></i> Gestión de Inventario
             </a>
             <i className="fa-solid fa-chevron-right" style={{ fontSize: '10px', color: 'var(--border-strong)' }}></i>
             <span style={{ color: 'var(--heading-color)' }}>Gestión de Catálogo</span>

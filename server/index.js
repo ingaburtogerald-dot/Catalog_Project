@@ -34,7 +34,7 @@ app.use('/api/logistics', require('./routes/logistics'));
 // *.html a medida que se vaya migrando de vanilla JS a React (ver plan de migración
 // de portales). Si el build aún no existe (npm run build dentro de frontend/), no se
 // monta nada aquí y todas caen a los archivos legacy servidos por publicDir más abajo.
-const REACT_ROUTES = ['/', '/index.html', '/producto.html', '/vendedor.html', '/catalogo-admin.html'];
+const REACT_ROUTES = ['/', '/index.html', '/login', '/producto.html', '/vendedor.html', '/catalogo-admin.html', '/inventario', '/gyrologistics', '/reportes', '/usuarios'];
 
 const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
 const frontendIndexPath = path.join(frontendDist, 'index.html');
@@ -82,7 +82,7 @@ app.listen(config.port, '0.0.0.0', () => {
       console.log(`   Admin (Red Local):     http://${ip}:${config.port}/admin.html`);
     });
   } else {
-    console.log(`   Admin (Local):        http://localhost:${config.port}/admin.html`);
+    console.log(`   Inventario (Local):   http://localhost:${config.port}/inventario`);
   }
   console.log(`   API:                  http://localhost:${config.port}/api/products\n`);
 

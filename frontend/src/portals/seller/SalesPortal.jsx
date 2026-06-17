@@ -42,6 +42,7 @@ export default function SalesPortal({ user, signOutPortal }) {
       icon={isAdmin ? "📊" : "💼"}
       user={user}
       signOutPortal={signOutPortal}
+      currentPortal="ventas"
       headerActions={(
         <>
           <NotificationBell items={notifications} unreadCount={unreadCount} onOpen={markAllRead} currency={currency} />
@@ -55,7 +56,7 @@ export default function SalesPortal({ user, signOutPortal }) {
         {isAdmin ? (
           <AdminView orders={orders} currency={currency} onStatusChange={updateStatus} />
         ) : (
-          <SellerView products={products} orders={orders} currency={currency} reloadOrders={reload} toast={toast} />
+          <SellerView user={user} products={products} orders={orders} currency={currency} reloadOrders={reload} toast={toast} />
         )}
       </div>
     </PortalLayout>

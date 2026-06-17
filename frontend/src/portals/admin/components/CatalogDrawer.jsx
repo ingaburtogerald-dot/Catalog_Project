@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchProducts, fetchConfig } from '../../../lib/api';
 import { getFirebaseAuth, onAuthStateChanged } from '../../../lib/firebaseClient';
 
-export default function CatalogDrawer({ isOpen, onClose, editProductId = null, prefillData = null }) {
+export default function CatalogDrawer({ isOpen, onClose, onSaved, editProductId = null, prefillData = null }) {
   const [categories, setCategories] = useState([]);
   const [inventory, setInventory] = useState([]);
   
@@ -211,8 +211,7 @@ export default function CatalogDrawer({ isOpen, onClose, editProductId = null, p
       setMsg({ type: 'success', text: `¡Producto ${editProductId ? 'actualizado' : 'publicado'} con éxito!` });
       setTimeout(() => {
         onClose();
-        // Recargar página para refrescar datos
-        window.location.reload();
+        onSaved?.();
       }, 1500);
 
     } catch (err) {

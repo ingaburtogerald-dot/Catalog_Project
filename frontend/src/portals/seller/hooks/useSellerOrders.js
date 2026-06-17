@@ -23,11 +23,11 @@ export function useSellerOrders(user) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function updateStatus(id, status) {
+  async function updateStatus(id, status, rejectionReason) {
     await authedFetch(`/orders/${id}`, user, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(rejectionReason ? { rejectionReason } : {}) }),
     });
     await load();
   }

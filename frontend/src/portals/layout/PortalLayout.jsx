@@ -2,7 +2,7 @@ import { useState } from 'react';
 import '../portals.css';
 import PortalHeader from './PortalHeader';
 
-export default function PortalLayout({ title, icon, user, signOutPortal, headerActions, children }) {
+export default function PortalLayout({ title, icon, user, signOutPortal, headerActions, currentPortal, children }) {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('gyro_admin_theme') || 'dark';
     document.body.setAttribute('data-theme', saved);
@@ -25,6 +25,7 @@ export default function PortalLayout({ title, icon, user, signOutPortal, headerA
           onThemeChange={handleThemeChange}
           signOutPortal={signOutPortal}
           actions={headerActions}
+          currentPortal={currentPortal}
         />
         {children}
       </div>

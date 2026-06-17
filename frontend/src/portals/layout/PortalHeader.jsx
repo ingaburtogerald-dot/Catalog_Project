@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import SettingsModal from './SettingsModal';
+import GlobalNav from '../../components/GlobalNav';
 
-export default function PortalHeader({ title, icon, user, theme, onThemeChange, signOutPortal, actions }) {
+export default function PortalHeader({ title, icon, user, theme, onThemeChange, signOutPortal, actions, currentPortal }) {
   const [showSettings, setShowSettings] = useState(false);
+  const roles = user?.roles || [];
 
   return (
     <div className="admin-head">
@@ -17,11 +19,20 @@ export default function PortalHeader({ title, icon, user, theme, onThemeChange, 
         </h1>
       </div>
 
-      {/* .user-box: assets/js/auth-global.js inyecta aquí el selector de paneles automáticamente. */}
       <div className="user-box">
         {actions}
-        <img src={user.photoURL || '/assets/img/Gyro_Store_logo.jpeg'} alt="" />
-        <span>{user.email}</span>
+
+        {roles.length > 0 && (
+          <GlobalNav
+            roles={roles}
+            currentPortal={currentPortal}
+            mode="switcher"
+            onLogout={signOutPortal}
+          />
+        )}
+
+        <img src={user?.photoURL || '/assets/img/Gyro_Store_logo.jpeg'} alt="" />
+        <span>{user?.email}</span>
         <button
           type="button" className="btn-ghost" title="Configuración"
           style={{ fontSize: 16, padding: 8 }}

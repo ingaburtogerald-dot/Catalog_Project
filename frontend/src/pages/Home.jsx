@@ -33,6 +33,9 @@ export default function Home() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editProductId, setEditProductId] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refreshCatalog = () => setRefreshKey(k => k + 1);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -86,7 +89,7 @@ export default function Home() {
         setLoadError(err.message);
       }
     })();
-  }, [setConfig, isAdmin]);
+  }, [setConfig, isAdmin, refreshKey]);
 
   // Cargar variantes no configuradas de inventario
   useEffect(() => {
@@ -318,10 +321,11 @@ export default function Home() {
       </footer>
 
       {isAdmin && (
-        <CatalogDrawer 
-          isOpen={isDrawerOpen} 
-          onClose={() => { setIsDrawerOpen(false); setPrefillData(null); }} 
-          editProductId={editProductId} 
+        <CatalogDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => { setIsDrawerOpen(false); setPrefillData(null); }}
+          onSaved={refreshCatalog}
+          editProductId={editProductId}
           prefillData={prefillData}
         />
       )}
